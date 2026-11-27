@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from './Icon';
+import { Wordmark } from '../pages/HomePage';
 import type { InvestmentAccount } from './Dialogs';
 
 export type DashboardSection =
@@ -133,12 +134,12 @@ export function DashboardHeader({
       <div className="db-top-header-inner">
         <div className="db-top-brand-group">
           <button type="button" className="db-top-brand" onClick={onBackToWebsite} aria-label="Invemon website home">
-            <img src="/assets/Logo-brand-light.png" alt="Invemon" width="138" height="30" />
+            <Wordmark />
           </button>
           <span className="db-top-divider" aria-hidden="true" />
           <span className="db-top-portal-pill">
             <i className="db-live-pulse" aria-hidden="true" />
-            Wealth Portal
+            Personal investing
           </span>
         </div>
 
@@ -446,14 +447,7 @@ export function CommandPalette({
   );
 }
 
-export function DashboardFooter({
-  onNavigate,
-  onBackToWebsite,
-  onExportCsv,
-  onResetSample,
-  onOpenSupport,
-  onOpenCareers,
-}: {
+export function DashboardFooter({ onNavigate, onBackToWebsite, onExportCsv, onResetSample, onOpenSupport }: {
   onNavigate: (section: DashboardSection) => void;
   onBackToWebsite: () => void;
   onExportCsv: () => void;
@@ -461,122 +455,5 @@ export function DashboardFooter({
   onOpenSupport?: () => void;
   onOpenCareers?: () => void;
 }) {
-  const [digestEmail, setDigestEmail] = useState('');
-  const [digestNote, setDigestNote] = useState('');
-
-  const submitDigest = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    try {
-      const existing: string[] = JSON.parse(localStorage.getItem('invemon-newsletter') || '[]');
-      localStorage.setItem('invemon-newsletter', JSON.stringify([...new Set([...existing, digestEmail.trim().toLowerCase()])]));
-    } catch { /* Optional browser storage */ }
-    setDigestNote('Subscribed to the weekly Invemon Wealth Digest.');
-    setDigestEmail('');
-  };
-
-  return (
-    <footer className="db-site-footer" aria-label="Invemon platform footer">
-      <div className="db-footer-inner">
-        <div className="db-footer-status-bar">
-          <div className="db-footer-status-pill">
-            <span className="db-status-dot" />
-            <span>All portfolio analytics &amp; CoinPaprika crypto feeds operational</span>
-          </div>
-          <div className="db-footer-trust-badges">
-            <span><Icon name="shield" size={15} /> 256-bit TLS</span>
-            <span><Icon name="repeat" size={15} /> Auto-Invest &amp; DRIP</span>
-            <span><Icon name="file" size={15} /> Tax CSV Ready</span>
-          </div>
-          <div className="db-footer-quick-btns">
-            <button type="button" className="db-footer-pill-btn" onClick={onExportCsv}>
-              <Icon name="download" size={14} /> Export CSV
-            </button>
-            {onOpenSupport && (
-              <button type="button" className="db-footer-pill-btn" onClick={onOpenSupport}>
-                Help Center
-              </button>
-            )}
-            <button type="button" className="db-footer-pill-btn is-lime" onClick={onBackToWebsite}>
-              Website Home <Icon name="arrow" size={14} />
-            </button>
-          </div>
-        </div>
-
-        <div className="db-footer-grid">
-          <div className="db-footer-brand-col">
-            <button type="button" className="db-footer-logo" onClick={onBackToWebsite} aria-label="Invemon home">
-              <img src="/assets/Logo-brand-dark.png" alt="Invemon" width="200" />
-            </button>
-            <p>
-              An all-in-one wealth &amp; investment workspace combining multi-asset tracking, automated DCA plans, dividend reinvestment, and AI portfolio health insights.
-            </p>
-            <form className="db-footer-digest" onSubmit={submitDigest}>
-              <label className="sr-only" htmlFor="db-digest-email">Weekly market digest email</label>
-              <input
-                id="db-digest-email"
-                type="email"
-                placeholder="Weekly market digest email"
-                value={digestEmail}
-                onChange={event => setDigestEmail(event.target.value)}
-                required
-              />
-              <button type="submit">Subscribe</button>
-            </form>
-            {digestNote && <span className="db-footer-digest-note" role="status">{digestNote}</span>}
-          </div>
-
-          <div className="db-footer-links-col">
-            <h3>Workspace</h3>
-            <button type="button" onClick={() => onNavigate('overview')}>Overview</button>
-            <button type="button" onClick={() => onNavigate('portfolio')}>Portfolio &amp; Holdings</button>
-            <button type="button" onClick={() => onNavigate('markets')}>Stock &amp; ETF Screener</button>
-            <button type="button" onClick={() => onNavigate('crypto')}>Crypto Explorer</button>
-            <button type="button" onClick={() => onNavigate('yield')}>Yield &amp; Dividends</button>
-          </div>
-
-          <div className="db-footer-links-col">
-            <h3>Planning &amp; Tools</h3>
-            <button type="button" onClick={() => onNavigate('autoinvest')}>Auto-Invest &amp; DCA</button>
-            <button type="button" onClick={() => onNavigate('goals')}>Financial Goals</button>
-            <button type="button" onClick={() => onNavigate('insights')}>AI Insights &amp; Rebalance</button>
-            <button type="button" onClick={() => onNavigate('activity')}>Activity &amp; CSV Export</button>
-            <button type="button" onClick={onResetSample}>Restore Sample Data</button>
-          </div>
-
-          <div className="db-footer-links-col">
-            <h3>Support &amp; Contact</h3>
-            {onOpenSupport && <button type="button" onClick={onOpenSupport}>Help Center &amp; FAQs</button>}
-            {onOpenCareers && <button type="button" onClick={onOpenCareers}>Careers at Invemon</button>}
-            <button type="button" onClick={() => onNavigate('settings')}>Account &amp; Privacy</button>
-            <a href="tel:+123456789"><Icon name="call" size={16} /> +123 456 789</a>
-            <a href="mailto:support@gravix.com"><Icon name="mail" size={16} /> support@gravix.com</a>
-            <span className="db-footer-address">Sudirman Street 302, Metro, Lampung Indonesia.</span>
-          </div>
-        </div>
-
-        <div className="db-footer-disclosure">
-          <p>
-            <strong>Important Disclosure:</strong> Invemon Wealth Portal is an interactive investment interface. Portfolio balances, simulated orders, APY cash sweep projections, and non-crypto market quotes on this workspace are illustrative sample data stored in your browser; cryptocurrency directory data is provided by CoinPaprika and may be delayed. Investing involves risk, including possible loss of principal. Past performance does not guarantee future results.
-          </p>
-        </div>
-
-        <div className="db-footer-bottom">
-          <p>Copyright &copy; 2025 Invemon. All rights reserved.</p>
-          <p>Powered by Samtiv Studio</p>
-          <div className="db-footer-socials">
-            <a href="https://www.facebook.com/" target="_blank" rel="noreferrer" aria-label="Facebook">f</a>
-            <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram">
-              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
-                <rect x="2" y="2" width="16" height="16" rx="5" />
-                <circle cx="10" cy="10" r="4" />
-                <circle cx="15" cy="5" r=".7" fill="currentColor" />
-              </svg>
-            </a>
-            <a href="https://www.linkedin.com/" target="_blank" rel="noreferrer" aria-label="LinkedIn">in</a>
-            <a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="YouTube"><Icon name="play" size={14} /></a>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
+  return <footer className="db-editorial-footer" aria-label="Invemon platform footer"><div className="db-editorial-footer-top"><button onClick={onBackToWebsite} aria-label="Invemon home"><Wordmark /></button><span>Invest with perspective.</span><button onClick={onExportCsv}><Icon name="download" size={14} /> Export activity</button><button onClick={() => onNavigate('settings')}>Account settings</button>{onOpenSupport && <button onClick={onOpenSupport}>Need a hand? <Icon name="arrow" size={14} /></button>}</div><p>This is an illustrative workspace. Portfolio balances, simulated orders, cash yield projections, and non-crypto quotes are sample data saved in your browser. No real funds move. Crypto directory data is provided by CoinPaprika and may be delayed or unavailable. Investing involves risk, including loss of principal. Market access depends on your country of residence and eligibility.</p><div className="db-editorial-footer-bottom"><span>© {new Date().getFullYear()} Invemon. A longer-term perspective.</span><button onClick={onResetSample}>Restore sample data</button><button onClick={onBackToWebsite}>Back to website <Icon name="arrow" size={13} /></button></div></footer>;
 }

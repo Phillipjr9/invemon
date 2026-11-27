@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+.playwright/
+
+image-search/
+
+.env.*
+!.env.example
+.vercel/

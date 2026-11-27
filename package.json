@@ -5,16 +5,24 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "npm run emails:preview && vite build",
+    "preview": "vite preview",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate-neon.mjs",
+    "test:api": "node --experimental-test-module-mocks --test tests/api.test.mjs",
+    "test:math": "node --import tsx --test tests/investment-math.test.ts",
+    "test": "npm run test:math && npm run test:api && npm run test:emails",
+    "emails:preview": "node scripts/generate-email-previews.mjs",
+    "test:emails": "node --experimental-test-module-mocks --test tests/email.test.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.1",
     "clsx": "2.1.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "tailwind-merge": "3.4.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.6.0",
     "@tailwindcss/vite": "4.1.17",
     "@types/node": "22.19.17",
     "@types/react": "19.2.7",
@@ -22,8 +30,12 @@
     "@vitejs/plugin-react": "5.1.1",
     "playwright": "^1.65.1",
     "tailwindcss": "4.1.17",
+    "tsx": "^4.23.15",
     "typescript": "5.9.3",
     "vite": "7.3.7",
     "vite-plugin-singlefile": "2.3.0"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

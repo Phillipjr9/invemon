@@ -1,0 +1,13 @@
+Your Invemon demo workspace was saved
+
+Hello Alex Morgan, a copy of your demo workspace was saved to your account. You can load it on another device from Settings.
+
+Time: 2026-11-27 12:30:00 UTC
+Reference: Demo revision 4
+
+This is a saved simulation—not a deposit receipt, trade confirmation, financial statement, or evidence of funds. Theme and market-directory favorites remain device-local.
+
+Open demo workspace: https://invemon.example/#dashboard
+
+Manage optional emails in Settings → Email notifications.
+Invemon is an investment simulation. No real funds move.

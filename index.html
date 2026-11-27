@@ -2,9 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Apply appearance before the first paint, including on direct dashboard visits.
+      try {
+        var preference = localStorage.getItem('invemon-theme');
+        var theme = preference === 'light' || preference === 'dark' ? preference : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      } catch (_) {
+        document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0f1326" />
-    <meta name="description" content="Invemon brings smarter investing into one simple app. Discover AI-powered insights, real-time analytics, and effortless portfolio management." />
+    <meta name="theme-color" content="#194637" />
+    <meta name="description" content="A more considered way to invest. Explore US and international markets, bring your portfolio into focus, and invest with perspective." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import Icon from './Icon';
 
 export type InvestmentAccount = {
+  serverUserId?: string;
+  emailVerified?: boolean;
   name: string;
   email: string;
   plan: string;
@@ -59,7 +61,7 @@ function Support() {
   return <><span className="dialog-eyebrow">We're here to help</span><h2 id="dialog-title">Help Center</h2><p className="dialog-description">Answers to common questions about creating an account and getting started.</p><div className="support-faq">{[
     ['How do I create an account?', 'Use the Sign Up form on the homepage. Enter your name, email, password, country, investment goal, risk profile, and monthly investment amount.'],
     ['How much do I need to start investing?', 'You can start with as little as $1. Choose a monthly amount that fits your goals and review your risk profile before investing.'],
-    ['Is my money secure?', 'Invemon uses encrypted connections, secure verification, and bank-grade security practices to protect your account and personal information.'],
+    ['Is my money secure?', 'Invemon is currently a simulation. No brokerage or bank custody is connected. Do not send money or submit identity documents.'],
     ['Can I change my plan later?', 'Yes. You can review the pricing plans on this page and upgrade or change your plan from your account settings.'],
   ].map(([question, answer]) => <details key={question}><summary>{question}<Icon name="plus" size={20} /></summary><p>{answer}</p></details>)}</div><a className="button button-lime full-width" href="mailto:support@gravix.com"><Icon name="mail" size={18} />Contact support</a></>;
 }

@@ -1,0 +1,46 @@
+import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE_PATH || undefined, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+try {
+ const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+ const errors=[]; page.on('pageerror', e=>errors.push(e.message));
+ await page.goto(`${process.env.TEST_BASE_URL || 'http://localhost:5173'}/#dashboard`);
+ await page.getByRole('button',{name:'Explore guest portfolio'}).click();
+ const d=page.getByRole('dialog');
+ const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('invemon-dashboard:alex.morgan@invemon.com')));
+ const open=async name=>{await page.getByRole('button',{name,exact:true}).click();await d.waitFor();};
+ const review=async action=>d.getByRole('button',{name:`Review ${action}`,exact:true}).click();
+ const complete=async action=>{await review(action);await d.getByRole('button',{name:`Confirm ${action}`,exact:true}).click();await d.getByRole('button',{name:'Done',exact:true}).waitFor();};
+ const done=()=>d.getByRole('button',{name:'Done',exact:true}).click();
+ const crypto=()=>d.getByRole('button',{name:'Crypto Transfer digital assets'}).click();
+ let before=await saved();
+ await open('Add money');
+ await d.getByLabel('Amount (USD)').fill('25001'); await review('deposit');
+ assert.match(await d.getByRole('alert').innerText(),/limit/);
+ await d.getByLabel('Bank transfer method').selectOption('swift');
+ await d.getByLabel('Demo source bank').selectOption('demo-international');
+ await d.getByLabel('Amount (USD)').fill('50'); await complete('deposit');
+ assert.match(await d.innerText(),/International SWIFT/);await done();
+ assert.equal((await saved()).cash,before.cash+50);
+ before=await saved(); await open('Add money'); await crypto();
+ await d.getByLabel('Crypto asset').selectOption('USDC');
+ await d.getByLabel('Crypto network').selectOption('Polygon');
+ await review('deposit'); assert.match(await d.getByRole('alert').innerText(),/Confirm/);
+ await d.getByRole('checkbox').check(); await complete('deposit');
+ assert.match(await d.innerText(),/Polygon/);await done();
+ let after=await saved();assert.equal(after.cash,before.cash);assert.equal(after.holdings.find(h=>h.symbol==='USDC').units,100);
+ assert.equal(after.activity[0].funding.network,'Polygon');
+ before=after;await open('Withdraw');await crypto();await d.getByLabel('Crypto asset').selectOption('USDC');
+ await d.getByLabel('Crypto network').selectOption('Polygon');await d.getByLabel('Amount (USDC)').fill('101');
+ await d.getByRole('checkbox').check();await review('withdrawal');assert.match(await d.getByRole('alert').innerText(),/exceeds/);
+ await d.getByLabel('Amount (USDC)').fill('20');await d.getByLabel('Destination address').fill('invalid');
+ await d.getByRole('checkbox').check();await review('withdrawal');assert.match(await d.getByRole('alert').innerText(),/format/);
+ await d.getByRole('button',{name:'Use sample destination'}).click();await d.getByRole('checkbox').check();
+ await complete('withdrawal');await done();after=await saved();assert.equal(after.cash,before.cash);assert.equal(after.holdings.find(h=>h.symbol==='USDC').units,80);
+ await open('Add money');await crypto();await d.getByLabel('Crypto asset').selectOption('XRP');await d.getByRole('checkbox').check();await complete('deposit');assert.match(await d.innerText(),/123456/);await done();
+ await open('Withdraw');await crypto();await d.getByLabel('Crypto asset').selectOption('XRP');await d.getByRole('button',{name:'Use sample destination'}).click();await d.getByLabel('Destination tag',{exact:true}).fill('');await d.getByRole('checkbox').check();await review('withdrawal');assert.match(await d.getByRole('alert').innerText(),/tag/);
+ await d.getByLabel('Destination tag',{exact:true}).fill('123456');await d.getByRole('checkbox').check();await complete('withdrawal');await done();assert.equal((await saved()).holdings.some(h=>h.symbol==='XRP'),false);
+ for(const width of [390,320]){await page.setViewportSize({width,height:844});await open('Withdraw');await crypto();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:`.playwright/funding-${width}.png`,fullPage:true});await page.keyboard.press('Escape');}
+ after=await saved();await page.reload();await page.locator('.db-overview-stage').waitFor();assert.equal((await saved()).cash,after.cash);assert.deepEqual(errors,[]);
+ console.log('PASS: SWIFT, ACH limit, crypto deposits/withdrawals, holdings vs cash, networks, acknowledgment, address/tag validation, receipts, persistence and mobile layout.');
+}finally{await browser.close();}

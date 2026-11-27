@@ -1,0 +1,13 @@
+A new sign-in to your Invemon account
+
+Hello Alex Morgan, your Invemon account was just signed in to with your password.
+
+Time: 2026-11-27 12:30:00 UTC
+
+
+If this was not you, open Invemon directly, change your password, and sign out all devices from Account & security. Invemon will never ask for your password, wallet seed phrase, or a payment by email.
+
+Review account security: https://invemon.example/#dashboard
+
+Manage optional emails in Settings → Email notifications.
+Invemon is an investment simulation. No real funds move.

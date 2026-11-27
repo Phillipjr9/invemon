@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactElement } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactElement } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../components/Icon';
 import type { InvestmentAccount } from '../components/Dialogs';
@@ -12,10 +12,19 @@ import {
   type HeaderNotice,
 } from '../components/DashboardChrome';
 import './dashboard.css';
+import TransactionSheet, { type TradeMode, type AssetOption } from '../components/TransactionSheet';
+import './dashboard-editorial.css';
+import { FUNDING_COINS, fundingReceipt, validateFunding, type FundingRequest, type FundingReceipt } from '../services/funding';
+import { Wordmark } from './HomePage';
+import EmailNotifications from '../components/EmailNotifications';
+import ServerAccountTools from '../components/ServerAccountTools';
+import WorkspaceSync from '../components/WorkspaceSync';
+import { SERVER_ACCOUNTS } from '../services/api';
+import { allocationTargets, monthlyEquivalent, dailyProfit, monthlyApyAccrual } from '../utils/investment-math';
 
 type Props = {
   account: InvestmentAccount | null;
-  onAccount?: (account: InvestmentAccount) => void;
+  onAccount?: (account: InvestmentAccount | null) => void;
   onBack: () => void;
   onSignUp: () => void;
   onSignOut: () => void;
@@ -29,8 +38,7 @@ type AllocKey = AssetClass | 'Cash';
 type Range = '1D' | '1W' | '1M' | '1Y' | 'ALL';
 type ChartView = 'performance' | 'cashflow' | 'income';
 type MarketFilter = 'all' | 'Stocks' | 'ETFs' | 'Dividend' | 'Bonds' | 'watchlist';
-type TradeMode = 'invest' | 'sell' | 'deposit' | 'withdraw' | 'goal';
-type ActivityKind = 'invest' | 'sell' | 'deposit' | 'withdraw' | 'dividend' | 'auto' | 'rebalance';
+type ActivityKind = 'swap' | 'invest' | 'sell' | 'deposit' | 'withdraw' | 'dividend' | 'auto' | 'rebalance';
 type PlanFrequency = 'Weekly' | 'Bi-weekly' | 'Monthly';
 
 type Holding = {
@@ -59,7 +67,7 @@ type Quote = {
 };
 
 type WatchItem = Quote & { spark: number[] };
-type Activity = { id: string; kind: ActivityKind; title: string; detail: string; amount: number; date: string };
+type Activity = { id: string; kind: ActivityKind; title: string; detail: string; amount: number; date: string; funding?: FundingReceipt };
 type Goal = { id: string; name: string; target: number; saved: number; dueYear: number; monthly: number };
 type Plan = { id: string; name: string; symbol: string; amount: number; frequency?: PlanFrequency; active: boolean; nextRun: string };
 type PriceAlert = { symbol: string; targetPrice: number; direction: 'above' | 'below' };
@@ -80,7 +88,6 @@ type State = {
 };
 
 type TradeState = { mode: TradeMode; symbol?: string; goalId?: string } | null;
-type AssetOption = { symbol: string; name: string; price: number; units?: number };
 type GoalDraft = { name: string; target: string; years: string; monthly: string };
 type PlanDraft = { name: string; symbol: string; amount: string; frequency: PlanFrequency };
 
@@ -88,13 +95,12 @@ const DAY = 86400000;
 const CASH_APY = 4.65;
 const CLASSES: AssetClass[] = ['Stocks', 'ETFs', 'Bonds', 'Crypto'];
 const CLASS_COLORS: Record<AllocKey, string> = {
-  Stocks: '#8dc11c',
-  ETFs: '#2b356b',
-  Bonds: '#7280c7',
-  Crypto: '#e0a526',
-  Cash: '#ace238',
+  Stocks: '#194637',
+  ETFs: '#78966d',
+  Bonds: '#b8c8a5',
+  Crypto: '#bf9766',
+  Cash: '#dce5c7',
 };
-const TARGET: Record<AllocKey, number> = { Stocks: 40, ETFs: 30, Bonds: 10, Crypto: 10, Cash: 10 };
 const RANGE_KEYS: Range[] = ['1D', '1W', '1M', '1Y', 'ALL'];
 const RANGES: Record<Range, { points: number; stepMs: number; ret: number; bench: number; vol: number }> = {
   '1D': { points: 48, stepMs: DAY / 96, ret: 0.82, bench: 0.61, vol: 0.012 },
@@ -342,7 +348,11 @@ function PerformanceChart({ portfolio, bench, range, valueText, hideBalances }: 
   const span = max - min || 1;
   const x = (i: number) => (i / (n - 1)) * W;
   const y = (v: number) => P + (1 - (v - min) / span) * (H - P * 2);
-  const path = (series: number[]) => series.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  const path = (values: number[]) => values.map((value, i) => {
+    if (i === 0) return `M${x(i).toFixed(1)} ${y(value).toFixed(1)}`;
+    const middle = ((x(i - 1) + x(i)) / 2).toFixed(1);
+    return `C${middle} ${y(values[i - 1]).toFixed(1)} ${middle} ${y(value).toFixed(1)} ${x(i).toFixed(1)} ${y(value).toFixed(1)}`;
+  }).join(' ');
   const line = path(portfolio);
   const area = `${line} L${W} ${H} L0 ${H} Z`;
   const index = hover ?? n - 1;
@@ -376,32 +386,36 @@ function PerformanceChart({ portfolio, bench, range, valueText, hideBalances }: 
           <span className={`db-tag ${alpha >= 0 ? '' : 'warn'}`}>Alpha {pct(alpha)}</span>
         </div>
       </div>
-      <div className="db-chart-plot" onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={() => setHover(null)}>
+      <div className="db-chart-plot" tabIndex={0} aria-label="Portfolio chart. Use left and right arrow keys to inspect sample values." onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={() => setHover(null)} onBlur={() => setHover(null)} onKeyDown={event => {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); setHover(current => clamp((current ?? n - 1) + (event.key === 'ArrowLeft' ? -1 : 1), 0, n - 1)); }
+        if (event.key === 'Escape') setHover(null);
+      }}>
         <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Portfolio performance over ${range}, ${pct(delta)} against a benchmark of ${pct(benchDelta)}`}>
           <defs>
             <linearGradient id="db-area-fill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0" stopColor="#8dc11c" stopOpacity=".32" />
-              <stop offset="1" stopColor="#8dc11c" stopOpacity="0" />
+              <stop offset="0" stopColor="#2b624a" stopOpacity=".32" />
+              <stop offset="1" stopColor="#2b624a" stopOpacity="0" />
             </linearGradient>
           </defs>
           {[0.25, 0.5, 0.75].map(step => (
-            <line key={step} x1="0" x2={W} y1={H * step} y2={H * step} stroke="#eef0f7" vectorEffect="non-scaling-stroke" />
+            <line key={step} x1="0" x2={W} y1={H * step} y2={H * step} stroke="#edf0e7" vectorEffect="non-scaling-stroke" />
           ))}
           <path d={area} fill="url(#db-area-fill)" />
-          <path d={path(bench)} fill="none" stroke="#7280c7" strokeWidth="2" strokeDasharray="6 6" vectorEffect="non-scaling-stroke" />
-          <path d={line} fill="none" stroke="#8dc11c" strokeWidth="3" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+          <path d={path(bench)} fill="none" stroke="#a5b58f" strokeWidth="2" strokeDasharray="6 6" vectorEffect="non-scaling-stroke" />
+          <path d={line} fill="none" stroke="#2b624a" strokeWidth="3" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
           {hover !== null && (
             <>
               <line x1={x(index)} x2={x(index)} y1="0" y2={H} stroke="#737681" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
-              <circle cx={x(index)} cy={y(portfolio[index])} r="6" fill="#8dc11c" stroke="white" strokeWidth="2" />
+              <circle cx={x(index)} cy={y(portfolio[index])} r="6" fill="#2b624a" stroke="white" strokeWidth="2" />
             </>
           )}
         </svg>
       </div>
+      <div className="db-chart-axis" aria-hidden="true">{[0, .25, .5, .75, 1].map(step => <span key={step}>{pointLabel(range, Math.round(step * (n - 1)))}</span>)}</div>
       <div className="db-chart-legend">
-        <span><i style={{ background: '#8dc11c' }} />Your portfolio</span>
-        <span><i style={{ background: '#7280c7' }} />S&amp;P 500 benchmark</span>
-        <span>Hover or drag to inspect any timestamp</span>
+        <span><i style={{ background: '#2b624a' }} />Your portfolio</span>
+        <span><i style={{ background: '#a5b58f' }} />S&amp;P 500 benchmark</span>
+        <span>Synthetic illustration · not actual returns</span>
       </div>
     </div>
   );
@@ -426,7 +440,7 @@ function CashFlowBars({ monthlyPlan, gain, valueText }: { monthlyPlan: number; g
         </div>
         <div className="db-chart-deltas">
           <span><i className="db-inline-swatch" style={{ background: '#0f1326' }} /> Contributions</span>
-          <span><i className="db-inline-swatch" style={{ background: '#8dc11c' }} /> Market growth</span>
+          <span><i className="db-inline-swatch" style={{ background: '#2b624a' }} /> Market growth</span>
         </div>
       </div>
       <div className="db-bar-columns" role="img" aria-label="Six month contributions and market growth bars">
@@ -497,7 +511,7 @@ function Donut({ parts }: { parts: { key: string; pct: number; color: string }[]
   let offset = 0;
   return (
     <svg className="db-donut" viewBox="0 0 120 120" role="img" aria-label="Portfolio allocation">
-      <circle cx="60" cy="60" r="48" fill="none" stroke="#eef0f7" strokeWidth="16" />
+      <circle cx="60" cy="60" r="48" fill="none" stroke="#edf0e7" strokeWidth="16" />
       {parts.map(part => {
         const length = (part.pct / 100) * circumference;
         const segment = (
@@ -533,153 +547,6 @@ function Spark({ data }: { data: number[] }) {
     <svg className="db-spark" viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
       <polyline points={points} fill="none" stroke={up ? '#5f9a12' : '#b42318'} strokeWidth="1.8" strokeLinejoin="round" />
     </svg>
-  );
-}
-
-function TradeSheet({
-  initial,
-  assets,
-  cash,
-  goals,
-  onSubmit,
-  onClose,
-}: {
-  initial: { mode: TradeMode; symbol?: string; goalId?: string };
-  assets: AssetOption[];
-  cash: number;
-  goals: Goal[];
-  onSubmit: (mode: TradeMode, symbol: string, amount: number, goalId?: string) => string | null;
-  onClose: () => void;
-}) {
-  const [mode, setMode] = useState<TradeMode>(initial.mode);
-  const [symbol, setSymbol] = useState(initial.symbol ?? assets[0]?.symbol ?? '');
-  const [goalId, setGoalId] = useState(initial.goalId ?? goals[0]?.id ?? '');
-  const [amount, setAmount] = useState('100');
-  const [error, setError] = useState('');
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  const selectableAssets = mode === 'sell' ? assets.filter(a => (a.units || 0) > 0) : assets;
-  const asset = selectableAssets.find(a => a.symbol === symbol);
-  const goal = goals.find(item => item.id === goalId);
-  const dollars = Number(amount);
-  const titleText = mode === 'invest' ? 'Buy Asset' : mode === 'sell' ? 'Sell Asset' : mode === 'deposit' ? 'Deposit Funds' : mode === 'withdraw' ? 'Withdraw Cash' : 'Goal Contribution';
-  const submitText = mode === 'invest'
-    ? (asset ? `Buy ${asset.symbol} Now` : 'Buy Asset')
-    : mode === 'sell'
-      ? (asset ? `Sell ${asset.symbol} Now` : 'Sell Asset')
-      : mode === 'deposit'
-        ? 'Confirm Deposit'
-        : mode === 'withdraw'
-          ? 'Confirm Withdrawal'
-          : (goal ? `Add to ${goal.name}` : 'Confirm Contribution');
-
-  useEffect(() => {
-    const previousFocus = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    dialogRef.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus();
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onCloseRef.current();
-      if (event.key !== 'Tab' || !dialogRef.current) return;
-      const items = [...dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input, select, [href]')].filter(item => item.offsetParent !== null);
-      if (!items.length) return;
-      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items[items.length - 1].focus(); }
-      if (!event.shiftKey && document.activeElement === items[items.length - 1]) { event.preventDefault(); items[0].focus(); }
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', handleKey);
-      previousFocus?.focus({ preventScroll: true });
-    };
-  }, []);
-
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!Number.isFinite(dollars) || dollars < 1) {
-      setError('Please enter a valid amount of at least $1.00.');
-      return;
-    }
-    if ((mode === 'withdraw' || mode === 'invest' || mode === 'goal') && dollars > cash + 0.001) {
-      setError(`That amount exceeds your available cash balance of ${money(cash)}.`);
-      return;
-    }
-    if (mode === 'sell' && asset && dollars > (asset.units || 0) * asset.price + 0.001) {
-      setError(`That amount exceeds your available position value of ${money((asset.units || 0) * asset.price)}.`);
-      return;
-    }
-    const result = onSubmit(mode, symbol, dollars, goalId);
-    if (result) setError(result);
-  };
-
-  const chooseMode = (next: TradeMode) => {
-    setMode(next);
-    setError('');
-    if (next === 'sell' && !(assets.find(a => a.symbol === symbol)?.units)) setSymbol(assets.find(a => (a.units || 0) > 0)?.symbol || '');
-    if (next === 'invest' && !assets.some(a => a.symbol === symbol)) setSymbol(assets[0]?.symbol || '');
-  };
-
-  const maxAmount = mode === 'sell' ? (asset?.units || 0) * (asset?.price || 0) : cash;
-
-  return createPortal(
-    <div className="db-modal-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-      <div className="db-modal" role="dialog" aria-modal="true" aria-labelledby="db-trade-title" ref={dialogRef}>
-        <div className="db-modal-head">
-          <h2 id="db-trade-title">{titleText}</h2>
-          <button className="db-icon-btn" onClick={onClose} aria-label="Close"><Icon name="close" size={20} /></button>
-        </div>
-        <div className="db-seg db-trade-modes" role="group" aria-label="Transaction type">
-          {(['invest', 'sell', 'deposit', 'withdraw', 'goal'] as TradeMode[]).map(item => (
-            <button key={item} type="button" aria-pressed={mode === item} className={mode === item ? 'selected' : ''} onClick={() => chooseMode(item)}>
-              {item === 'invest' ? 'Buy' : item === 'goal' ? 'Goal' : item[0].toUpperCase() + item.slice(1)}
-            </button>
-          ))}
-        </div>
-        <form className="db-form" onSubmit={submit} style={{ marginTop: 18 }} noValidate>
-          {(mode === 'invest' || mode === 'sell') && (
-            <label className="db-field">Asset
-              <select value={asset?.symbol || ''} onChange={event => setSymbol(event.target.value)} required>
-                {selectableAssets.map(a => <option key={a.symbol} value={a.symbol}>{a.symbol} · {a.name}</option>)}
-              </select>
-            </label>
-          )}
-          {mode === 'goal' && (
-            <label className="db-field">Savings goal
-              <select value={goal?.id || ''} onChange={event => setGoalId(event.target.value)} required>
-                {goals.map(item => <option key={item.id} value={item.id}>{item.name} · {money(item.saved)} saved</option>)}
-              </select>
-            </label>
-          )}
-          <label className="db-field">Amount (USD)
-            <input type="number" min="1" max={mode === 'deposit' ? undefined : maxAmount} step="0.01" value={amount} onChange={event => setAmount(event.target.value)} required data-autofocus />
-          </label>
-          <div className="db-chips">
-            {(mode === 'deposit' ? [100, 250, 500, 1000, 2500] : [25, 100, 250, 500]).map(value => <button type="button" key={value} onClick={() => setAmount(String(value))}>${value.toLocaleString()}</button>)}
-            {mode !== 'deposit' && (
-              <button type="button" onClick={() => setAmount(String(Math.floor(maxAmount * 100) / 100))}>
-                {mode === 'sell' ? 'Sell full position' : 'All available cash'}
-              </button>
-            )}
-          </div>
-          <div className="db-trade-summary">
-            <span>{mode === 'sell' ? 'Position available' : 'Available cash'}</span>
-            <strong>{mode === 'sell' ? `${(asset?.units || 0).toLocaleString('en-US', { maximumFractionDigits: 6 })} ${asset?.symbol || ''} · ${money(maxAmount)}` : money(cash)}</strong>
-          </div>
-          {mode === 'goal' && goal && <div className="db-trade-summary"><span>Goal balance</span><strong>{money(goal.saved)} of {money(goal.target)}</strong></div>}
-          {(mode === 'invest' || mode === 'sell') && asset && dollars > 0 && (
-            <div className="db-trade-summary"><span>Estimated units</span><strong>{(dollars / asset.price).toFixed(5)} {asset.symbol}</strong></div>
-          )}
-          {mode === 'sell' && !asset && <p className="db-muted db-small">You don&apos;t have any holdings to sell yet.</p>}
-          {error && <p className="db-error" role="alert">{error}</p>}
-          <button className="button button-lime full-width" type="submit" disabled={(mode === 'invest' || mode === 'sell') && !asset}>
-            {submitText}
-          </button>
-          <p className="db-muted db-small">Transactions update sample data only; no funds move and no orders are sent. Investing carries risk.</p>
-        </form>
-      </div>
-    </div>,
-    document.body,
   );
 }
 
@@ -743,8 +610,8 @@ function AssetInspectorModal({
         </div>
 
         <svg viewBox={`0 0 ${W} ${H}`} className="db-inspector-chart" role="img" aria-label={`${quote.symbol} 30 day sample trend`}>
-          <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="#8dc11c22" />
-          <path d={line} fill="none" stroke="#8dc11c" strokeWidth="2.5" strokeLinejoin="round" />
+          <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="#2b624a22" />
+          <path d={line} fill="none" stroke="#2b624a" strokeWidth="2.5" strokeLinejoin="round" />
         </svg>
 
         <div className="db-range-bar-wrap">
@@ -879,6 +746,7 @@ export default function DashboardPage({
   onOpenCareers,
   onOpenProfile,
 }: Props) {
+  const TARGET = allocationTargets(account?.risk);
   const storageKey = `invemon-dashboard:${account?.email || 'guest'}`;
   const cryptoStorageKey = `invemon-crypto-watchlist:${account?.email?.trim().toLowerCase() || 'guest'}`;
 
@@ -972,7 +840,7 @@ export default function DashboardPage({
   const total = invested + state.cash;
   const gain = invested - costBasis;
   const gainPct = costBasis ? (gain / costBasis) * 100 : 0;
-  const dayChange = state.holdings.reduce((sum, h) => sum + (holdingValue(h) * h.day) / 100, 0);
+  const dayChange = state.holdings.reduce((sum, h) => sum + dailyProfit(holdingValue(h), h.day), 0);
   const dayPct = total - dayChange ? (dayChange / (total - dayChange)) * 100 : 0;
   const classValue = (cls: AssetClass) => state.holdings.filter(h => h.cls === cls).reduce((sum, h) => sum + holdingValue(h), 0);
 
@@ -990,14 +858,14 @@ export default function DashboardPage({
   const topHolding = [...state.holdings].sort((a, b) => holdingValue(b) - holdingValue(a))[0];
   const topWeight = topHolding && total ? (holdingValue(topHolding) / total) * 100 : 0;
   const losers = state.holdings.filter(h => h.price < h.cost);
-  const monthlyPlan = state.plans.filter(p => p.active).reduce((sum, p) => sum + p.amount, 0);
+  const monthlyPlan = state.plans.filter(p => p.active).reduce((sum, p) => sum + monthlyEquivalent(p.amount, p.frequency), 0);
   const annualFee = invested * 0.0025;
   const riskLabel = account?.risk || 'Balanced';
   const yearReturn = RANGES['1Y'].ret;
   const yearBench = RANGES['1Y'].bench;
 
   const annualCashInterest = state.cash * (CASH_APY / 100);
-  const monthlyCashInterest = annualCashInterest / 12;
+  const monthlyCashInterest = monthlyApyAccrual(state.cash, CASH_APY);
   const dividendHoldings = state.holdings.filter(h => (h.divYield ?? lookupQuote(h.symbol, state.holdings, state.watchlist)?.divYield ?? 0) > 0);
   const annualDividendIncome = dividendHoldings.reduce((sum, h) => {
     const yld = h.divYield ?? lookupQuote(h.symbol, state.holdings, state.watchlist)?.divYield ?? 0;
@@ -1034,7 +902,7 @@ export default function DashboardPage({
   ];
   const dashboardNotifications = state.prefs.alerts ? generatedNotifications : [];
   const unreadCount = dashboardNotifications.filter(item => !state.readNotificationIds.includes(item.id)).length;
-  const nextStep: HeaderNotice = dashboardNotifications[0] || {
+  const nextStep: HeaderNotice = generatedNotifications[0] || {
     id: 'steady-plan',
     icon: 'check',
     level: 'info',
@@ -1066,7 +934,7 @@ export default function DashboardPage({
 
   const exportCsv = useCallback(() => {
     const rows = [['Date', 'Type', 'Description', 'Amount'], ...state.activity.map(a => [new Date(a.date).toISOString(), a.kind, `${a.title} - ${a.detail}`, a.amount.toFixed(2)])];
-    const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/^[=+@\-\t\r]/, "'$&").replace(/"/g, '""')}"`).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     const link = document.createElement('a');
     link.href = url;
@@ -1077,6 +945,7 @@ export default function DashboardPage({
   }, [showToast, state.activity]);
 
   const resetDemo = useCallback(() => {
+    if (!window.confirm('Reset this device’s demo portfolio? Export a backup first if needed.')) return;
     try { localStorage.removeItem(storageKey); } catch { /* Nothing to clear. */ }
     setState(seedState(account));
     showToast('Sample portfolio restored');
@@ -1085,6 +954,7 @@ export default function DashboardPage({
   const commandItems = useMemo<CommandItem[]>(() => {
     const actions: CommandItem[] = [
       { id: 'act-deposit', group: 'Actions', title: 'Deposit Cash', subtitle: 'Add sample USD buying power (4.65% APY sweep)', icon: 'plus', badge: 'Quick Action', onSelect: () => openTrade('deposit') },
+      { id: 'act-swap', group: 'Actions', title: 'Swap assets', subtitle: 'Exchange one sample holding for another', icon: 'repeat', onSelect: () => openTrade('swap') },
       { id: 'act-buy', group: 'Actions', title: 'Buy Stock, ETF, or Crypto', subtitle: 'Open order ticket for your portfolio', icon: 'trend', badge: 'Quick Action', onSelect: () => openTrade('invest') },
       { id: 'act-sell', group: 'Actions', title: 'Sell Position', subtitle: 'Trim or exit an existing holding', icon: 'chart', badge: 'Quick Action', onSelect: () => openTrade('sell') },
       { id: 'act-rebal', group: 'Actions', title: '1-Click Portfolio Rebalance', subtitle: 'Preview & align asset classes to target weights', icon: 'sliders', badge: 'AI Tool', onSelect: () => setRebalanceOpen(true) },
@@ -1140,9 +1010,9 @@ export default function DashboardPage({
     };
     return (
       <div className="db-empty">
-        <img src="/assets/Logo-brand-dark.png" alt="Invemon" width="165" />
-        <h1>Your wealth workspace is ready.</h1>
-        <p>Create your personal account or launch an instant sample portfolio to explore multi-asset analytics, CoinPaprika crypto markets, DRIP dividends, and 1-click rebalancing.</p>
+        <Wordmark />
+        <h1>A clearer view of your future.</h1>
+        <p>Explore a considered space for your investments, goals, and long-term plans. Start with an illustrative portfolio—no real money or brokerage account required.</p>
         <div className="db-empty-actions">
           <button className="button button-lime" onClick={onSignUp}>Create your account <Icon name="arrow" size={18} /></button>
           {onAccount && (
@@ -1157,47 +1027,75 @@ export default function DashboardPage({
   const firstName = account.name.split(' ')[0] || 'there';
   const changeText = (value: number, base: number) => (state.prefs.valueMode === 'percent' ? pct(base ? (value / base) * 100 : 0) : `${value >= 0 ? '+' : '−'}${M(Math.abs(value))}`);
 
-  const submitTrade = (mode: TradeMode, symbol: string, dollars: number, goalId?: string): string | null => {
+  const submitTrade = (mode: TradeMode, symbol: string, dollars: number, goalId?: string, destination?: string, funding?: FundingRequest): string | null => {
     if (!Number.isFinite(dollars) || dollars < 1) return 'Enter an amount of at least $1.';
+    if (mode === 'deposit' || mode === 'withdraw') {
+      if (!funding) return 'Choose a funding method before continuing.';
+      const failure = validateFunding(funding, mode, account.country || 'United States', assetOptions, dollars);
+      if (failure) return failure;
+      const receipt = fundingReceipt(funding);
+      if (funding.kind === 'crypto') {
+        const coin = FUNDING_COINS.find(c => c.symbol === funding.coin)!;
+        const held = state.holdings.find(h => h.symbol === coin.symbol);
+        const quantity = Number(funding.quantity);
+        const price = held?.price || coin.price;
+        let holdings: Holding[];
+        if (mode === 'deposit') {
+          holdings = held ? state.holdings.map(h => h.symbol === coin.symbol ? { ...h, units: h.units + quantity, cost: (h.units * h.cost + quantity * price) / (h.units + quantity) } : h)
+            : [...state.holdings, { symbol: coin.symbol, name: coin.name, cls: 'Crypto', units: quantity, price, cost: price, day: 0, divYield: 0, sector: 'Digital asset' }];
+        } else {
+          if (!held || quantity > held.units) return `That quantity exceeds your available ${coin.symbol} holding.`;
+          holdings = quantity === held.units ? state.holdings.filter(h => h.symbol !== coin.symbol) : state.holdings.map(h => h.symbol === coin.symbol ? { ...h, units: h.units - quantity } : h);
+        }
+        const activity: Activity = { ...makeActivity(mode, `${coin.symbol} ${mode === 'deposit' ? 'deposit' : 'withdrawal'} simulated`, `${quantity} ${coin.symbol} · ${funding.network} · ${receipt.sourceOrDestination} · USD value illustrative`, mode === 'deposit' ? dollars : -dollars), funding: receipt };
+        setState({ ...state, holdings, activity: [activity, ...state.activity] });
+        showToast(`Sample ${coin.symbol} holding updated; USD cash unchanged`);
+        return null;
+      }
+      if (mode === 'withdraw' && dollars > state.cash) return 'That is more than your available cash.';
+      const sign = mode === 'deposit' ? 1 : -1;
+      const activity: Activity = { ...makeActivity(mode, mode === 'deposit' ? 'Bank deposit simulated' : 'Bank withdrawal simulated', `${receipt.method} · ${receipt.sourceOrDestination} · USD · no real funds moved`, sign * dollars), funding: receipt };
+      setState(current => ({ ...current, cash: current.cash + sign * dollars, activity: [activity, ...current.activity] }));
+      showToast('Sample bank transfer recorded');
+      return null;
+    }
+    if (mode === 'swap') {
+      if (!destination || destination === symbol) return 'Choose two different assets.';
+      const source = state.holdings.find(h => h.symbol === symbol);
+      const target = lookupQuote(destination, state.holdings, state.watchlist);
+      if (!source || !Number.isFinite(source.price) || source.price <= 0) return 'Choose an available holding to swap.';
+      if (!target || !Number.isFinite(target.price) || target.price <= 0) return 'The destination asset is unavailable.';
+      if (dollars > source.units * source.price) return 'The swap exceeds your available position value.';
+      const sold = applySell(state, symbol, dollars);
+      if ('error' in sold) return sold.error;
+      const bought = applyBuy(sold.next, destination, dollars);
+      if ('error' in bought) return bought.error;
+      setState({ ...bought.next, cash: state.cash, activity: [makeActivity('swap', `Swapped ${symbol} → ${destination}`, `${(dollars / source.price).toFixed(6)} ${symbol} → ${(dollars / target.price).toFixed(6)} ${destination} · ${money(dollars)} · sample exchange`, 0), ...state.activity] });
+      showToast(`Swapped ${symbol} for ${destination} in your sample portfolio`);
+      return null;
+    }
     if (mode === 'goal') {
       const goal = state.goals.find(item => item.id === goalId);
       if (!goal) return 'Choose a savings goal.';
-      if (dollars > state.cash + 0.001) return 'That contribution is more than your available cash.';
+      if (dollars > total - state.goals.reduce((sum, item) => sum + item.saved, 0) + 0.001) return 'That amount exceeds the unassigned value in your portfolio. Goals are earmarks, not separate accounts.';
       setState(current => ({
         ...current,
-        cash: current.cash - dollars,
         goals: current.goals.map(item => (item.id === goal.id ? { ...item, saved: item.saved + dollars } : item)),
-        activity: [makeActivity('invest', `Added to ${goal.name}`, 'Goal contribution · sample transaction', -dollars), ...current.activity],
+        activity: [makeActivity('invest', `Added to ${goal.name}`, 'Portfolio earmark only · cash and total wealth unchanged', 0), ...current.activity],
       }));
-      setTrade(null);
       showToast(`${money(dollars)} added to ${goal.name}`);
-      return null;
-    }
-    if (mode === 'deposit') {
-      setState(s => ({ ...s, cash: s.cash + dollars, activity: [makeActivity('deposit', 'Deposit received', 'Bank transfer · 4.65% APY sweep', dollars), ...s.activity] }));
-      setTrade(null);
-      showToast(`${money(dollars)} added to your cash sweep balance`);
-      return null;
-    }
-    if (mode === 'withdraw') {
-      if (dollars > state.cash) return 'That is more than your available cash.';
-      setState(s => ({ ...s, cash: s.cash - dollars, activity: [makeActivity('withdraw', 'Withdrawal requested', 'To linked bank account', -dollars), ...s.activity] }));
-      setTrade(null);
-      showToast(`${money(dollars)} removed from your cash balance`);
       return null;
     }
     if (mode === 'sell') {
       const result = applySell(state, symbol, dollars);
       if ('error' in result) return result.error;
       setState(result.next);
-      setTrade(null);
       showToast(`Sold ${symbol} for ${money(dollars)} in your sample portfolio`);
       return null;
     }
     const result = applyBuy(state, symbol, dollars);
     if ('error' in result) return result.error;
     setState(result.next);
-    setTrade(null);
     showToast(`Bought ${symbol} for ${money(dollars)} in your sample portfolio`);
     return null;
   };
@@ -1218,7 +1116,7 @@ export default function DashboardPage({
       const currentVal = classRows.reduce((sum, h) => sum + h.units * h.price, 0);
       if (classRows.length > 0 && currentVal > 0) {
         const ratio = targetVal / currentVal;
-        updatedHoldings = updatedHoldings.map(h => (h.cls === cls ? { ...h, units: h.units * ratio } : h));
+        updatedHoldings = updatedHoldings.map(h => (h.cls === cls ? { ...h, units: h.units * ratio, cost: ratio > 1 ? (h.units * h.cost + h.units * (ratio - 1) * h.price) / (h.units * ratio) : h.cost } : h));
       } else if (targetVal > 0) {
         const rep = representative[cls];
         updatedHoldings.push({
@@ -1240,18 +1138,19 @@ export default function DashboardPage({
       cash: nextCash,
       holdings: updatedHoldings,
       rebalanceQueued: false,
-      activity: [makeActivity('rebalance', 'Portfolio rebalanced to target weights', '40% Stocks · 30% ETFs · 10% Bonds · 10% Crypto · 10% Cash', 0), ...current.activity],
+      activity: [makeActivity('rebalance', 'Portfolio rebalanced to target weights', `${account?.risk || 'Balanced'} policy · sample rebalance; no live orders`, 0), ...current.activity],
     }));
     setRebalanceOpen(false);
     showToast('Portfolio aligned to 100/100 target allocation');
   };
 
   const simulateCashInterest = () => {
-    const payout = Math.max(0.5, Math.round(monthlyCashInterest * 100) / 100);
+    const payout = Math.round(monthlyCashInterest * 100) / 100;
+    if (payout <= 0) { showToast('No sample interest to credit at this balance.'); return; }
     setState(current => ({
       ...current,
       cash: current.cash + payout,
-      activity: [makeActivity('dividend', 'High-Yield Cash interest credited', `${CASH_APY}% APY monthly sweep`, payout), ...current.activity],
+      activity: [makeActivity('dividend', 'High-Yield Cash interest credited', `${CASH_APY}% illustrative APY · equivalent monthly compounding · simulation only`, payout), ...current.activity],
     }));
     showToast(`${money(payout)} monthly interest credited to cash`);
   };
@@ -1279,7 +1178,7 @@ export default function DashboardPage({
 
   const togglePlan = (id: string) => setState(s => ({ ...s, plans: s.plans.map(p => (p.id === id ? { ...p, active: !p.active } : p)) }));
   const setPlanAmount = (id: string, value: string) => setState(s => ({ ...s, plans: s.plans.map(p => (p.id === id ? { ...p, amount: Math.max(0, Number(value) || 0) } : p)) }));
-  const removePlan = (id: string) => setState(s => ({ ...s, plans: s.plans.filter(p => p.id !== id) }));
+  const removePlan = (id: string) => { if (window.confirm('Remove this simulated recurring plan?')) setState(s => ({ ...s, plans: s.plans.filter(p => p.id !== id) })); };
   const runPlan = (plan: Plan) => {
     if (plan.amount < 1) { showToast('Set a contribution of at least $1 first.'); return; }
     const result = applyBuy(state, plan.symbol, plan.amount, 'auto', plan.name);
@@ -1360,7 +1259,7 @@ export default function DashboardPage({
     setGoalDraft(null);
     showToast('Goal created');
   };
-  const removeGoal = (id: string) => setState(s => ({ ...s, goals: s.goals.filter(g => g.id !== id) }));
+  const removeGoal = (id: string) => { if (window.confirm('Remove this goal earmark? Portfolio assets and cash will not change.')) setState(s => ({ ...s, goals: s.goals.filter(g => g.id !== id) })); };
   const setGoalMonthly = (id: string, value: string) => setState(s => ({ ...s, goals: s.goals.map(g => (g.id === id ? { ...g, monthly: Math.max(0, Number(value) || 0) } : g)) }));
 
   const setPref = (patch: Partial<Prefs>) => setState(s => ({ ...s, prefs: { ...s.prefs, ...patch } }));
@@ -1376,7 +1275,7 @@ export default function DashboardPage({
 
   const visibleActivity = state.activity.filter(a => {
     if (filter === 'all') return true;
-    if (filter === 'invest') return a.kind === 'invest' || a.kind === 'sell' || a.kind === 'auto' || a.kind === 'rebalance';
+    if (filter === 'invest') return a.kind === 'invest' || a.kind === 'sell' || a.kind === 'auto' || a.kind === 'swap' || a.kind === 'rebalance';
     if (filter === 'cash') return a.kind === 'deposit' || a.kind === 'withdraw';
     return a.kind === 'dividend';
   });
@@ -1622,7 +1521,9 @@ export default function DashboardPage({
   );
 
   const analyticsCard = (
-    <section className="db-card db-span-3" aria-label="Portfolio analytics">
+    <section className="db-card db-portfolio-chart" aria-label="Portfolio analytics">
+      <div className="db-portfolio-heading"><span><i /> YOUR PORTFOLIO</span><span className="db-demo-label">ILLUSTRATIVE · USD</span></div>
+      <div className="db-portfolio-balance"><span>Total portfolio value</span><strong>{M(total)}</strong><div className={tone(gain)}><Icon name="trend" size={14} /> {changeText(gain, costBasis)} <span>({pct(gainPct)}) all-time return</span></div></div>
       <div className="db-card-head">
         <div className="db-seg" role="tablist" aria-label="Analytics mode">
           <button type="button" role="tab" aria-selected={chartView === 'performance'} className={chartView === 'performance' ? 'selected' : ''} onClick={() => setChartView('performance')}>
@@ -1652,23 +1553,29 @@ export default function DashboardPage({
   );
 
   const quickCard = (
-    <section className="db-card" aria-label="Quick actions">
-      <div className="db-card-head"><h2>Quick actions</h2></div>
+    <section className="db-card db-editorial-quick" aria-label="Quick actions">
+      <div className="db-card-head"><h2>Move with intention.</h2><Icon name="external" size={15} /></div>
       <div className="db-quick">
-        <button type="button" onClick={() => openTrade('deposit')}><span className="db-quick-icon"><Icon name="plus" size={18} /></span>Deposit</button>
-        <button type="button" onClick={() => openTrade('withdraw')}><span className="db-quick-icon"><Icon name="arrow" size={18} /></span>Withdraw</button>
-        <button type="button" onClick={() => openTrade('invest')}><span className="db-quick-icon"><Icon name="trend" size={18} /></span>Buy assets</button>
-        <button type="button" onClick={() => openTrade('sell')}><span className="db-quick-icon"><Icon name="chart" size={18} /></span>Sell assets</button>
-        <button type="button" disabled={!state.goals.length} onClick={() => openTrade('goal', undefined, state.goals[0]?.id)}><span className="db-quick-icon"><Icon name="target" size={18} /></span>Goal transfer</button>
-        <button type="button" onClick={() => setRebalanceOpen(true)}><span className="db-quick-icon"><Icon name="sliders" size={18} /></span>Rebalance</button>
+        <button type="button" onClick={() => openTrade('deposit')}><span className="db-quick-icon"><Icon name="plus" size={19} /></span>Add money</button>
+        <button type="button" onClick={() => openTrade('withdraw')}><span className="db-quick-icon"><Icon name="arrow" size={19} /></span>Withdraw</button>
+        <button type="button" onClick={() => openTrade('invest')}><span className="db-quick-icon"><Icon name="trend" size={19} /></span>Invest</button>
+        <button type="button" onClick={() => openTrade('swap')}><span className="db-quick-icon"><Icon name="repeat" size={19} /></span>Swap</button>
+        <button type="button" onClick={() => openTrade('sell')}><span className="db-quick-icon"><Icon name="chart" size={19} /></span>Sell</button>
       </div>
-      <div className="db-divider" />
-      <div className="db-row-between">
-        <div>
-          <span className="db-muted db-small">DRIP status</span>
-          <strong style={{ display: 'block', fontSize: 15, marginTop: 2 }}>{state.prefs.drip ? 'Auto-reinvesting' : 'Cash payouts'}</strong>
-        </div>
-        <span className="db-tag">{state.priceAlerts.length} price alerts</span>
+      <button className="db-recurring-link" onClick={() => navigateDashboard('autoinvest')}><span><Icon name="repeat" size={17} /><span>Small steps. Lasting habits.<small>{state.plans.filter(p => p.active).length} active recurring plans</small></span></span><Icon name="arrow" size={16} /></button>
+    </section>
+  );
+
+  const portfolioOverview = (
+    <section className="db-overview-stage" aria-label="Portfolio summary">
+      {analyticsCard}
+      <div className="db-cash-stack">
+        <section className="db-cash-card" aria-label="Available cash">
+          <div className="db-cash-card-top"><span>YOUR CASH ACCOUNT</span><Icon name="wallet" size={23} /></div>
+          <div className="db-cash-card-balance"><span>Available to invest</span><strong>{M(state.cash)}</strong><small>USD · Sample buying power</small></div>
+          <div className="db-cash-card-bottom"><span><i /> A little today. More possibility tomorrow.</span><Icon name="sprout" size={26} /></div>
+        </section>
+        {quickCard}
       </div>
     </section>
   );
@@ -1707,13 +1614,11 @@ export default function DashboardPage({
         </div>
       )}
       <div className="db-grid">
-        {analyticsCard}
-        {quickCard}
-        {focusCard}
-        <section className="db-card"><div className="db-kpi"><span>Monthly auto-invest</span><strong>{M(monthlyPlan)}</strong><small>{state.plans.filter(p => p.active).length} active recurring plans</small></div></section>
-        <section className="db-card"><div className="db-kpi"><span>Annual passive income</span><strong className="db-pos">{M(annualPassiveIncome)}</strong><small>{M(annualDividendIncome)} div + {M(annualCashInterest)} cash APY</small></div></section>
-        <section className="db-card"><div className="db-kpi"><span>Goals on track</span><strong>{state.goals.filter(g => goalMath(g).onTrack).length} of {state.goals.length}</strong><small>Projected from monthly pace</small></div></section>
-        <section className="db-card"><div className="db-kpi"><span>Allocation health</span><strong>{healthScore}/100</strong><small>{drift.length ? `${drift.length} classes off target` : 'Balanced to target'}</small></div></section>
+        <div className="db-overview-section-title db-span-4"><div><span>THE BIGGER PICTURE</span><h2>Built around <em>your ambitions.</em></h2></div><button className="db-btn ghost" onClick={() => navigateDashboard('insights')}>Portfolio insights <Icon name="arrow" size={15} /></button></div>
+        <section className="db-card db-summary-kpi"><div className="db-kpi"><span>Monthly auto-invest</span><strong>{M(monthlyPlan)}</strong><small>{state.plans.filter(p => p.active).length} active recurring plans</small></div></section>
+        <section className="db-card db-summary-kpi"><div className="db-kpi"><span>Annual passive income</span><strong className="db-pos">{M(annualPassiveIncome)}</strong><small>{M(annualDividendIncome)} div + {M(annualCashInterest)} cash APY</small></div></section>
+        <section className="db-card db-summary-kpi"><div className="db-kpi"><span>Goals on track</span><strong>{state.goals.filter(g => goalMath(g).onTrack).length} of {state.goals.length}</strong><small>Projected from monthly pace</small></div></section>
+        <section className="db-card db-summary-kpi"><div className="db-kpi"><span>Allocation health</span><strong>{healthScore}/100</strong><small>{drift.length ? `${drift.length} classes off target` : 'Balanced to target'}</small></div></section>
 
         <section className="db-card db-span-2">
           <div className="db-card-head">
@@ -1749,8 +1654,8 @@ export default function DashboardPage({
               return (
                 <li key={h.symbol}>
                   <button type="button" className="db-asset-link" onClick={() => setInspectedSymbol(h.symbol)}>
-                    <strong>{h.symbol}</strong>
-                    <small>{h.name} · {h.units.toLocaleString('en-US', { maximumFractionDigits: 3 })} units</small>
+                    <span className={`db-holding-monogram db-symbol-${h.symbol.toLowerCase()}`} aria-hidden="true">{h.symbol === 'AAPL' ? 'a' : h.symbol === 'BTC' ? '₿' : h.symbol.slice(0, 1)}</span><span><strong>{h.symbol}</strong>
+                    <small>{h.name} · {h.units.toLocaleString('en-US', { maximumFractionDigits: 3 })} units</small></span>
                   </button>
                   <div className="db-num">
                     <strong>{M(holdingValue(h))}</strong>
@@ -1807,6 +1712,7 @@ export default function DashboardPage({
           </button>
         </section>
 
+        {focusCard}
         <section className="db-card db-span-4">
           <div className="db-card-head"><h2>Recent activity</h2><button type="button" className="db-btn ghost" onClick={() => navigateDashboard('activity')}>View ledger</button></div>
           <ul className="db-list">
@@ -1814,7 +1720,7 @@ export default function DashboardPage({
               <li key={item.id}>
                 <div><strong>{item.title}</strong><small>{item.detail} · {fmtWhen(item.date)}</small></div>
                 <span className={`db-num ${item.amount < 0 ? '' : item.amount > 0 ? 'db-pos' : 'db-muted'}`}>
-                  {item.amount === 0 ? 'Completed' : `${item.amount > 0 ? '+' : '−'}${M(Math.abs(item.amount))}`}
+                  {item.amount === 0 ? (item.kind === 'swap' ? 'Exchanged' : 'Completed') : `${item.amount > 0 ? '+' : '−'}${M(Math.abs(item.amount))}`}
                 </span>
               </li>
             ))}
@@ -2105,7 +2011,7 @@ export default function DashboardPage({
   const autoinvest = (
     <div className="db-grid">
       <section className="db-card db-span-2">
-        <div className="db-kpi"><span>Monthly scheduled DCA</span><strong>{M(monthlyPlan)}</strong><small>{state.plans.filter(p => p.active).length} active recurring schedules</small></div>
+        <div className="db-kpi"><span>Monthly-equivalent scheduled DCA</span><strong>{M(monthlyPlan)}</strong><small>{state.plans.filter(p => p.active).length} active recurring schedules</small></div>
       </section>
       <section className="db-card db-span-2">
         <div className="db-kpi"><span>Illustrative value in 10 years</span><strong>{M(estimatedInTenYears)}</strong><small>Assumes 7% average annual return. Not a forecast.</small></div>
@@ -2252,7 +2158,7 @@ export default function DashboardPage({
             <li key={item.id}>
               <div><strong>{item.title}</strong><small>{item.detail} · {fmtWhen(item.date)}</small></div>
               <span className={`db-num ${item.amount < 0 ? '' : item.amount > 0 ? 'db-pos' : 'db-muted'}`}>
-                {item.amount === 0 ? 'Completed' : `${item.amount > 0 ? '+' : '−'}${M(Math.abs(item.amount))}`}
+                {item.amount === 0 ? (item.kind === 'swap' ? 'Exchanged' : 'Completed') : `${item.amount > 0 ? '+' : '−'}${M(Math.abs(item.amount))}`}
               </span>
             </li>
           ))}
@@ -2321,6 +2227,9 @@ export default function DashboardPage({
 
   const settings = (
     <div className="db-grid">
+      {(!SERVER_ACCOUNTS || !account?.serverUserId) && <section className="db-card db-span-4"><div className="db-card-head"><h2>Email notifications</h2></div><p className="db-small db-muted">Guest mode does not send emails. Explore our branded templates, including subtle pre-rendered 3D motion. Server accounts can manage delivery preferences here.</p><a href="#emails" className="db-btn" style={{marginTop:16}}>Explore email studio ↗</a></section>}
+      {SERVER_ACCOUNTS && account?.serverUserId && <><ServerAccountTools account={account} onAccount={next => onAccount?.(next)} onSignedOut={onBack} /><WorkspaceSync snapshot={state} onRestore={setState} /><EmailNotifications /></>}
+
       <section className="db-card db-span-4">
         <div className="db-card-head"><h2>Display &amp; Investing Preferences</h2></div>
         <div className="db-setting">
@@ -2386,7 +2295,7 @@ export default function DashboardPage({
   const inspectedHolding = inspectedSymbol ? state.holdings.find(h => h.symbol === inspectedSymbol) : undefined;
 
   return (
-    <div className="db-page-wrap">
+    <div className="db-page-wrap db-editorial">
       <DashboardHeader
         account={account}
         section={section}
@@ -2409,7 +2318,7 @@ export default function DashboardPage({
 
       <div className="db-shell">
         <aside className="db-side" aria-label="Dashboard workspace navigation" ref={navigationRef}>
-          <div className="db-side-heading">WORKSPACE</div>
+          <div className="db-side-heading">YOUR WORKSPACE</div><div className="db-side-account"><span>Personal investing</span><small><i /> Demo account · USD</small></div>
           {SECTIONS.map(item => (
             <button
               type="button"
@@ -2444,18 +2353,16 @@ export default function DashboardPage({
           )}
 
           <div className="db-side-yield-card">
-            <span>Cash Sweep APY</span>
-            <strong>{CASH_APY}%</strong>
-            <small>{M(state.cash)} earning daily</small>
-            <button type="button" onClick={() => navigateDashboard('yield')}>View yield →</button>
+            <Icon name="sprout" size={24} /><span>The longer view.</span><strong>Little by little.<br />Over time.</strong><small>A plan for what matters to you.</small><button type="button" onClick={() => navigateDashboard('goals')}>Explore your goals <Icon name="arrow" size={14} /></button>
           </div>
         </aside>
 
         <main className={`db-main ${section === 'crypto' ? 'is-crypto' : ''}`}>
           <div className="db-subbar">
             <div>
-              <span className="db-subbar-crumb">Invemon Wealth / {title}</span>
-              <h1>{section === 'overview' ? `Welcome back, ${firstName}` : title}</h1>
+              <span className="db-subbar-crumb">YOUR WORLD. IN PERSPECTIVE. / {title.toUpperCase()}</span>
+              <h1>{section === 'overview' ? <>A little more perspective, <em>{firstName}.</em></> : title}</h1>
+              <p className="db-subbar-description">{section === 'overview' ? 'Your investments, your progress, and what comes next.' : 'A considered space for your longer-term plans.'}</p>
             </div>
             <div className="db-subbar-actions">
               <button type="button" className="db-btn ghost" onClick={() => setCommandOpen(true)}>
@@ -2468,7 +2375,8 @@ export default function DashboardPage({
           </div>
 
           <div className="db-content">
-            {summaryHero}
+            <div className="db-sample-notice"><span><i /> DEMO WORKSPACE</span><p>Sample balances and simulated transactions. No real money moves.</p><span>USD · {account.country || 'Region not set'}</span></div>
+            {section === 'overview' ? portfolioOverview : summaryHero}
             {pages[section]}
           </div>
         </main>
@@ -2511,9 +2419,10 @@ export default function DashboardPage({
       )}
 
       {trade && (
-        <TradeSheet
+        <TransactionSheet
           initial={trade}
           assets={assetOptions}
+          country={account.country || 'United States'}
           cash={state.cash}
           goals={state.goals}
           onSubmit={submitTrade}
@@ -2521,7 +2430,7 @@ export default function DashboardPage({
         />
       )}
 
-      {toast && <div className="db-toast" role="status" aria-live="polite">{toast}</div>}
+      {toast && !trade && <div className="db-toast" role="status" aria-live="polite">{toast}</div>}
     </div>
   );
 }
