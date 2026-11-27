@@ -37,3 +37,7 @@ Also outstanding: durable request pagination/search and prioritized exception qu
 ## Validation
 
 Eight local PGlite/API tests cover deny-by-default access, verified email/MFA, customer escalation rejection, origin/password enforcement, exact balances, secret omission, no-money approval, release-on-reject, stale/terminal conflicts, audit rollback, immutable history and invalid/order/released reservations. Migration runner tests apply and reapply migration 009. Browser suite mocks HTTP and exercises access denial, approval, conflict draft retention/password clearing, lookup, permission loss and 320–1440px light/dark layouts. No real payment, hosted database mutation or provider call is tested/performed.
+
+## Customer request follow-up (migration 010)
+
+Customer destination saving, gated request submission, owner cancellation and review-status history are now implemented at `#withdrawals`; the admin queue includes masked immutable destination metadata. See `CUSTOMER_WITHDRAWALS.md`. This supersedes the earlier statement that those request controllers do not exist. Full destination reveal, network/bank verification, payout dispatch and independently verified completion are still absent; approval is NOT payment authorization. Migration 010 is now required by the queue query, before deploying this version of admin.

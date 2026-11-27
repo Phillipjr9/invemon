@@ -26,8 +26,8 @@ export default async function handler(req,res){
     return res.status(200).json({events,limit:50});
    }
    if(view!=='queue')throw new HttpError(400,'Invalid admin view.');
-   const requests=await sql`SELECT r.id,r.user_id,u.email,r.asset,r.units::text,a.decimals,r.state,r.created_at,coalesce(e.revision,0) AS revision,coalesce(e.decision,'pending') AS decision
-    FROM fund_reservation_states r JOIN app_users u ON u.id=r.user_id JOIN ledger_assets a ON a.code=r.asset
+   const requests=await sql`SELECT r.id,r.user_id,u.email,r.asset,r.units::text,a.decimals,r.state,r.created_at,d.label AS destination_label,d.masked AS destination_masked,d.kind AS destination_kind,coalesce(e.revision,0) AS revision,coalesce(e.decision,'pending') AS decision
+    FROM fund_reservation_states r LEFT JOIN withdrawal_requests w ON w.id=r.id LEFT JOIN withdrawal_destinations d ON d.id=w.destination_id JOIN app_users u ON u.id=r.user_id JOIN ledger_assets a ON a.code=r.asset
     LEFT JOIN LATERAL(SELECT revision,decision FROM admin_review_events WHERE reservation_id=r.id ORDER BY revision DESC LIMIT 1)e ON true
     WHERE r.purpose='withdrawal' ORDER BY r.created_at DESC,r.id DESC LIMIT 100`;
    return res.status(200).json({requests,limit:100,payoutsEnabled:false});

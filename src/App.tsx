@@ -1,3 +1,4 @@
+import WithdrawalsPage from './pages/WithdrawalsPage';
 import AdminPage from './pages/AdminPage';
 import FundingPage from './pages/FundingPage';
 import SupportPage from './pages/SupportPage';
@@ -10,11 +11,11 @@ import HomePage from './pages/HomePage';
 import ServerAuthPage from './pages/ServerAuthPage';
 import { SERVER_ACCOUNTS, api, accountAction } from './services/api';
 
-type View = 'home' | 'signup' | 'login' | 'dashboard' | 'emails' | 'reset' | 'verify' | 'support' | 'funding' | 'admin';
+type View = 'home' | 'signup' | 'login' | 'dashboard' | 'emails' | 'reset' | 'verify' | 'support' | 'funding' | 'admin' | 'withdrawals';
 const getView = (): View => {
   const path = window.location.hash.slice(1).split('?')[0];
   if(path === 'deposit') return 'funding';
-  return ['signup', 'login', 'dashboard', 'emails', 'reset', 'verify', 'support', 'funding', 'admin'].includes(path) ? path as View : 'home';
+  return ['signup', 'login', 'dashboard', 'emails', 'reset', 'verify', 'support', 'funding', 'admin', 'withdrawals'].includes(path) ? path as View : 'home';
 };
 export default function App() {
   const [view, setView] = useState<View>(getView);
@@ -44,6 +45,7 @@ export default function App() {
   return <>
     <ThemeToggle />
     {view === 'admin' && <AdminPage />}
+    {view === 'withdrawals' && <WithdrawalsPage />}
     {view === 'funding' && !sessionReady && <main className="login-main" role="status">Checking your account session…</main>}
     {view === 'funding' && sessionReady && <FundingPage account={SERVER_ACCOUNTS ? account : null} onBack={dashboard} onLogin={login} />}
     {view === 'support' && <SupportPage signedIn={SERVER_ACCOUNTS && Boolean(account?.serverUserId)} onBack={dashboard} onLogin={login} />}

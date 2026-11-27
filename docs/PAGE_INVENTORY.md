@@ -54,3 +54,7 @@ Restored layouts additionally verified with four metric/three content panel asse
 ## Finance admin follow-up
 
 `#admin` now provides a server-restricted finance review console: withdrawal-purpose reservation queue, reviewing/approved/rejected decisions, append-only internal notes, atomic rejection/release, exact customer balance lookup and support link. Requires private FUNDING_ADMIN_IDS, verified email, MFA-verified session and fresh password for writes. This is not yet a complete payout system: customer request submission, saved destinations, payment execution/completion verification and customer status integration remain outstanding. See ADMIN_SYSTEM.md. Migration 009 is required before deployment; not applied to hosted Neon.
+
+## Customer withdrawals follow-up
+
+`#withdrawals` now contains encrypted saved ACH/wire/crypto destinations, default-disabled request submission with exact fund holds, eligible cancellation and owner-only review-status history. Accessible from dashboard footer, Activity and Deposit. Admin queue links destination metadata through immutable request records. Requires migration 010 and private encryption configuration; no hosted rollout or enablement occurred. This supersedes the earlier missing-customer-request entry. Full payment execution/completion, destination verification, operator reveal, notifications and unified activity feed remain incomplete. See CUSTOMER_WITHDRAWALS.md.
