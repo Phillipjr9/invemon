@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { EMAIL_TYPES, renderEmail } from '../server/email-templates.mjs';
 const pg=new PGlite();
-for(const file of ['001_accounts.sql','002_email_notifications.sql','003_account_tokens.sql'])await pg.exec(fs.readFileSync(new URL(`../db/${file}`,import.meta.url),'utf8'));
+for(const file of ['001_accounts.sql','002_email_notifications.sql','003_account_tokens.sql','004_support_threads.sql'])await pg.exec(fs.readFileSync(new URL(`../db/${file}`,import.meta.url),'utf8'));
 function query(text,values=[]){return {text,values,then(resolve,reject){return pg.query(text,values).then(result=>result.rows).then(resolve,reject);}};}
 function sql(parts,...values){return query(parts.reduce((s,p,i)=>s+p+(i<values.length?`$${i+1}`:''),''),values);}
 sql.transaction=statements=>pg.transaction(async tx=>{const rows=[];for(const s of statements)rows.push((await tx.query(s.text,s.values)).rows);return rows;});

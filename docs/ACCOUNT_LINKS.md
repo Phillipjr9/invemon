@@ -4,6 +4,7 @@
 
 1. Back up the intended Neon database.
 2. Update this branch locally and run `npm ci && npm run db:migrate` with the correct server-only `DATABASE_URL` in `.env`. Migration **003_account_tokens.sql** is new. The earlier eight-table check does not cover it.
+   The current release also requires `004_support_threads.sql` for support and account exports; run the migration command against all numbered files rather than applying only 003 manually.
 3. Configure production `APP_ORIGIN`, `RESEND_API_KEY`, and `EMAIL_FROM` (verified sender) in Vercel. Do not paste secrets in chat or expose them through VITE variables.
 4. Redeploy only after applying migration 003. Password changes now also invalidate outstanding reset tokens.
 5. Exercise the flows using an account/email you control. Local automated tests mock the provider; no live emails were sent during implementation.

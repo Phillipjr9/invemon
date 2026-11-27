@@ -33,7 +33,7 @@ Never expose database credentials in a `VITE_` variable or commit `.env` files. 
 
 Server accounts support password registration/login, HttpOnly cookie sessions, profile/risk edits, password changes, session revocation, exports, password-confirmed account deletion, support-request storage, transactional email notifications, and explicit revision-checked cloud save/load of simulation data. Passwords are derived on the server using scrypt. Owner-scoped API access is required for cloud data.
 
-Single-use email verification and password recovery are implemented but require migration `003_account_tokens.sql`, a verified sender, and configured Resend delivery. MFA, social login/passkeys, support-agent tooling and live financial providers are **not enabled**. Account email delivery is implemented through Resend but requires a verified sending domain and server-side configuration; see [email setup](docs/EMAIL_NOTIFICATIONS.md). The older browser-only account flows are UI demonstrations and are not used for production server authentication. Existing local demo users are not silently migrated into server accounts.
+Single-use email verification and password recovery are implemented but require migration `003_account_tokens.sql`, a verified sender, and configured Resend delivery. MFA, social login/passkeys, and live financial providers are **not enabled**. The restricted support desk requires migration 004 and explicit staff authorization; see [support setup](docs/SUPPORT_DESK.md). Account email delivery is implemented through Resend but requires a verified sending domain and server-side configuration; see [email setup](docs/EMAIL_NOTIFICATIONS.md). The older browser-only account flows are UI demonstrations and are not used for production server authentication. Existing local demo users are not silently migrated into server accounts.
 
 ## Demo features
 
@@ -73,3 +73,15 @@ or live trade execution is enabled by embedding a chart. See
 contracts, chart failure paths, asset-image coverage, and responsive dashboard checks.
 Install the browser with `npx playwright install chromium` first. API and provider HTTP
 are mocked in browser contracts; this does not establish production service health.
+
+
+## Support and operations
+
+Signed-in server accounts can open `/#support` for private ticket history/replies.
+A server-side UUID allowlist plus verified email enables restricted staff access;
+staff writes require a fresh password confirmation. See [support setup](docs/SUPPORT_DESK.md).
+
+Protected `/api/health` probes database/schema readiness. `/api/maintenance` defaults
+to a dry run and can only clean expired transient auth records with explicit
+server configuration and bearer credentials. No automatic cleanup, monitoring
+subscription or retention policy is enabled. See [operations runbook](docs/OPERATIONS.md).

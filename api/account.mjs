@@ -52,8 +52,9 @@ export default async function handler(req,res) {
    const events=await db()`SELECT action,created_at FROM security_events WHERE user_id=${user.id} ORDER BY created_at DESC LIMIT 1000`;
    const tickets=await db()`SELECT id,subject,message,status,created_at FROM support_requests WHERE user_id=${user.id}`;
    const emails=await db()`SELECT type,status,created_at,accepted_at FROM email_outbox WHERE user_id=${user.id} ORDER BY created_at DESC LIMIT 1000`;
+   const supportMessages=await db()`SELECT m.id,m.request_id,m.actor_role,m.message,m.created_at FROM support_messages m JOIN support_requests r ON r.id=m.request_id WHERE r.user_id=${user.id} AND m.visibility='public' ORDER BY m.created_at DESC LIMIT 1000`;
    const preferences=await db()`SELECT sign_in,support_received,workspace_saved FROM email_preferences WHERE user_id=${user.id}`;
-   return res.status(200).json({emailHistory:emails,emailPreferences:preferences[0]||null,account:account(user),workspace:workspace[0]||null,events,tickets,notice:'Simulation data only. Not an investment statement or tax document.'});
+   return res.status(200).json({supportMessages,emailHistory:emails,emailPreferences:preferences[0]||null,account:account(user),workspace:workspace[0]||null,events,tickets,notice:'Simulation data only. Not an investment statement or tax document.'});
   }
   throw new HttpError(400,'Unsupported action. Live transfers, trading, and MFA are not enabled.');
  } catch(error){return fail(res,error);}

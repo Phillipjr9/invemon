@@ -41,6 +41,7 @@ export default function ServerAccountTools({ account, onAccount, onSignedOut }: 
     <button type="button" className="db-btn" onClick={() => void run(async () => { await accountAction('logout-all'); onAccount(null); onSignedOut(); })}>Sign out all devices</button>
     <button type="button" className="db-btn" onClick={() => void run(async () => { const data = await accountAction('export'); downloadJson('invemon-account-export.json', data); setNotice('Account export downloaded. Simulation only—not a tax statement.'); })}>Export account data</button>
    </div>
+   <div style={{ marginTop: 20 }}><a className="db-btn" href="#support">View support requests &amp; replies</a></div>
    <details style={{ marginTop: 20 }}><summary>Contact support</summary><form className="dialog-form" onSubmit={event => submit(event, 'support')}>
     <label className="db-field">Subject<input name="subject" required minLength={3} maxLength={120} /></label><label className="db-field">Message<textarea name="message" required minLength={10} maxLength={4000} /></label><button type="submit" className="db-btn">Submit support request</button>
    </form></details>

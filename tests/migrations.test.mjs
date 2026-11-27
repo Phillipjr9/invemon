@@ -1,0 +1,18 @@
+import { test, mock, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { PGlite } from '@electric-sql/pglite';
+const pg=new PGlite();after(()=>pg.close());
+const query=(text,values=[])=>({text,values,then(resolve,reject){return pg.query(text,values).then(result=>result.rows).then(resolve,reject);}});
+const sql=()=>{throw new Error('Migration runner must use query/transaction');};
+sql.query=query;
+sql.transaction=statements=>pg.transaction(async tx=>{const results=[];for(const statement of statements)results.push((await tx.query(statement.text,statement.values)).rows);return results;});
+mock.module('@neondatabase/serverless',{namedExports:{neon:()=>sql}});
+process.env.DATABASE_URL='postgresql://test-only';
+test('actual migration runner applies every numbered migration and safely reapplies',async()=>{
+ await import('../scripts/migrate-neon.mjs?pass=1');
+ await import('../scripts/migrate-neon.mjs?pass=2');
+ const tables=(await pg.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name")).rows.map(row=>row.table_name);
+ assert.deepEqual(tables,['account_action_tokens','app_rate_limits','app_sessions','app_users','demo_workspaces','email_outbox','email_preferences','security_events','support_messages','support_requests']);
+ const columns=(await pg.query("SELECT column_name FROM information_schema.columns WHERE table_name='support_requests'")).rows.map(row=>row.column_name);
+ assert.ok(columns.includes('revision'));assert.ok(columns.includes('updated_at'));
+});

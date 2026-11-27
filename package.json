@@ -10,11 +10,13 @@
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate-neon.mjs",
     "test:api": "node --experimental-test-module-mocks --test tests/api.test.mjs",
     "test:math": "node --import tsx --test tests/investment-math.test.ts",
-    "test": "npm run test:math && npm run test:api && npm run test:emails && npm run test:links",
+    "test": "npm run test:math && npm run test:api && npm run test:emails && npm run test:links && npm run test:operations && npm run test:migrations",
     "emails:preview": "node scripts/generate-email-previews.mjs",
     "test:emails": "node --experimental-test-module-mocks --test tests/email.test.mjs",
     "test:links": "node --experimental-test-module-mocks --test tests/account-links.test.mjs",
-    "test:browser": "node scripts/verify-browser.mjs"
+    "test:browser": "node scripts/verify-browser.mjs",
+    "test:operations": "node --experimental-test-module-mocks --test tests/support-operations.test.mjs",
+    "test:migrations": "node --experimental-test-module-mocks --test tests/migrations.test.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.1",

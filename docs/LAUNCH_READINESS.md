@@ -8,11 +8,14 @@
 - Hashed, single-use expiring verification/reset links; deliberate POST consumption; reset session revocation; account settings verification action; recovery UI. Requires migration 003 and email configuration.
 - Unit/API tests and a browser suite wired into CI. Browser contracts mock account HTTP and TradingView script insertion. They do not verify actual third-party data or remote database health.
 
+- Customer support center and allowlisted/verified staff desk, public replies, isolated internal notes, password-confirmed staff writes, optimistic concurrency and audit events. Requires migration 004.
+- Protected database/schema readiness probe and dry-run-by-default expired-auth cleanup. Neither monitoring nor cleanup is automatically configured/scheduled (see `OPERATIONS.md`).
+
 ## Release gates still open
 
-- Apply **003_account_tokens.sql** remotely (the user confirmed only the previous eight tables).
+- Apply **003_account_tokens.sql** and **004_support_threads.sql** remotely (the user confirmed only the original eight tables).
 - Configure and test a verified mail sender; Resend API key, delivery/bounce tracking, retries for account links.
-- Commit/push changes, review PR, resolve GitHub billing/check failures, deploy current code with current env. Do not treat a READY build as a working DB connection.
+- Review the updated PR, resolve GitHub billing/check failures, deploy current code with current env. Do not treat a READY build as a working DB connection.
 - Smoke-test Vercel + Neon accounts with authorized test credentials: registration, restore session, save/load/revision conflicts, verification, reset, export, and deletion.
 - Confirm actual TradingView widget access, instrument availability, displayed delays, attribution and acceptable usage from a normal browser. This sandbox cannot reach TradingView/Resend/Neon hosts. Chart render was tested with a simulated embed only.
 - Independent accessibility/security review, WAF/bot protection, error monitoring, retention schedule, tested Neon backup/restore.
@@ -23,7 +26,7 @@
 - Licensed stock quote API / synchronized real-price valuations; market-monitoring alert worker.
 - Google OAuth/OIDC, MFA/passkeys, verified email changes.
 - Continuous cross-device sync (current workflow is explicit cloud snapshot save/load).
-- Support-agent dashboard/authorization and actual support staffing.
+- Actual support staffing, assignment, full-text search and reply-email delivery; the bounded restricted support desk and owner-only history are now implemented (see `SUPPORT_DESK.md`).
 - Brokerage/bank/crypto custody providers, KYC/AML/product eligibility, signed provider webhooks, reconciliation and authoritative append-only ledger.
 - Real recurring investments, withdrawals, live orders, tax statements or financial advice.
 

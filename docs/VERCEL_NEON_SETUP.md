@@ -9,7 +9,7 @@ Implemented:
 - Server-side scrypt password hashing; random, hashed-at-rest session tokens; seven-day HttpOnly cookies (Secure + `__Host-` prefix in production).
 - Exact-origin write protection, request limits, persistent IP-based throttling, and owner-scoped queries.
 - Registration/sign-in/session restoration, password change with session revocation, profile/risk edits, logout/all-device logout, JSON data export and password-confirmed account deletion.
-- Support-request storage with configurable email acknowledgments (no support-agent UI).
+- Support-request storage with configurable email acknowledgments (see `docs/SUPPORT_DESK.md` for customer history and restricted staff tooling).
 - Transactional Resend email queue, preferences, limited 3D-animated welcome/test specimens, and a protected retry worker; see `docs/EMAIL_NOTIFICATIONS.md`.
 - Explicit demo cloud save/load with revision conflict detection. Theme and crypto-directory favorites remain device-local.
 - Correct goal earmark accounting, risk-policy targets, recurring monthly equivalents, daily price-change math and monthly APY compounding. Synthetic history is labeled.
@@ -18,7 +18,7 @@ Implemented:
 
 Create a Neon project and a database for this application. Use a separate Neon branch/database for previews. Copy the **pooled** connection URL with `sslmode=require` into your own local environment and Vercel's encrypted environment settings. Do not paste it into chat or put it in a `VITE_` variable.
 
-Runtime migrations are `db/001_accounts.sql`, `db/002_email_notifications.sql`, and `db/003_account_tokens.sql`; the migration script applies all three in order. The historical `prisma/schema.prisma` is a design scaffold and is **not** the schema used by these APIs. Do not run Prisma migrations against this installation without reconciling the schemas.
+Runtime migrations are `db/001_accounts.sql`, `db/002_email_notifications.sql`, `db/003_account_tokens.sql`, and `db/004_support_threads.sql`; the migration script applies all four in order. The historical `prisma/schema.prisma` is a design scaffold and is **not** the schema used by these APIs. Do not run Prisma migrations against this installation without reconciling the schemas.
 
 Use a database owner for migration and a restricted DML-only application role for runtime where possible. The browser never connects to Neon. Access isolation is implemented by session-authenticated API queries, not browser credentials or a claimed RLS policy.
 
