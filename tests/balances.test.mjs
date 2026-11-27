@@ -9,7 +9,7 @@ let failQuery=false;
 const sql=(parts,...values)=>{const text=parts.reduce((s,p,i)=>s+p+(i<values.length?`$${i+1}`:''),'');if(failQuery&&text.includes('ledger_spendable_balances'))throw new Error('Database unavailable');return pg.query(text,values).then(r=>r.rows);};
 mock.module('@neondatabase/serverless',{namedExports:{neon:()=>sql}});
 process.env.DATABASE_URL='postgresql://test';process.env.NODE_ENV='production';
-const {default:handler}=await import('../api/balances.mjs');
+const {default:handler}=await import('../server/routes/balances.mjs');
 const user=randomUUID(),other=randomUUID(),token='a'.repeat(64);
 await pg.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,'balance@example.com','not-a-login'),($2,'other-balance@example.com','not-a-login')",[user,other]);
 await pg.query("INSERT INTO app_sessions(token_hash,user_id,expires_at,mfa_verified) VALUES($1,$2,now()+interval '1 hour',true)",[createHash('sha256').update(token).digest('hex'),user]);

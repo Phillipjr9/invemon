@@ -8,7 +8,7 @@ for(const file of fs.readdirSync(new URL('../db/',import.meta.url)).filter(n=>n.
 const sql=(parts,...values)=>pg.query(parts.reduce((s,p,i)=>s+p+(i<values.length?`$${i+1}`:''),''),values).then(r=>r.rows);
 mock.module('@neondatabase/serverless',{namedExports:{neon:()=>sql}});
 process.env.DATABASE_URL='postgresql://test';process.env.APP_ORIGIN='https://invemon.example';process.env.NODE_ENV='production';process.env.WITHDRAWAL_ENCRYPTION_KEY='d'.repeat(64);
-const {hashPassword}=await import('../server/core.mjs');const {default:handler}=await import('../api/withdrawals.mjs');
+const {hashPassword}=await import('../server/core.mjs');const {default:handler}=await import('../server/routes/withdrawals.mjs');
 const {decryptDestination,encryptDestination,validateDestination,atomicWithdrawalAmount}=await import('../server/withdrawals.mjs');
 const user=randomUUID(),other=randomUUID(),account=randomUUID(),custody=randomUUID(),password='Withdrawal test password!',token='a'.repeat(64),otherToken='b'.repeat(64);
 await pg.query("INSERT INTO app_users(id,email,password_hash,email_verified_at,mfa_secret) VALUES($1,'withdraw@example.com',$2,now(),'test-secret'),($3,'other@example.com',$2,now(),'test-secret')",[user,await hashPassword(password),other]);

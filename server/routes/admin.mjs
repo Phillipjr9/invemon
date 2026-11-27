@@ -1,5 +1,5 @@
-import {db,headers,guard,session,body,HttpError,fail,rateLimit,checkPassword,randomUUID} from '../server/core.mjs';
-import {requireFundingAdmin} from '../server/funding.mjs';
+import {db,headers,guard,session,body,HttpError,fail,rateLimit,checkPassword,randomUUID} from '../core.mjs';
+import {requireFundingAdmin} from '../funding.mjs';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export default async function handler(req,res){
  headers(res);

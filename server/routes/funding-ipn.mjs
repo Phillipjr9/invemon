@@ -1,5 +1,5 @@
-import {headers,body,db,HttpError,fail} from '../server/core.mjs';
-import {sandboxEnabled,verifyIpn,fundingEventHash} from '../server/funding.mjs';
+import {headers,body,db,HttpError,fail} from '../core.mjs';
+import {sandboxEnabled,verifyIpn,fundingEventHash} from '../funding.mjs';
 export default async function handler(req,res){
  headers(res);
  try{

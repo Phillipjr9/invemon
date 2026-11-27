@@ -1,4 +1,4 @@
-import { db, headers, guard, session, body, HttpError, fail, rateLimit, randomUUID, checkPassword } from '../server/core.mjs';
+import { db, headers, guard, session, body, HttpError, fail, rateLimit, randomUUID, checkPassword } from '../core.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function isSupportAgent(user) {

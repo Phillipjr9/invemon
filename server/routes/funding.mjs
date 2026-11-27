@@ -1,6 +1,6 @@
-import {productionCredentialsConfigured} from '../server/nowpayments-production.mjs';
-import {headers,guard,session,body,rateLimit,db,HttpError,fail} from '../server/core.mjs';
-import {requireFundingAdmin,updateBankInstructions} from '../server/funding.mjs';
+import {productionCredentialsConfigured} from '../nowpayments-production.mjs';
+import {headers,guard,session,body,rateLimit,db,HttpError,fail} from '../core.mjs';
+import {requireFundingAdmin,updateBankInstructions} from '../funding.mjs';
 export default async function handler(req,res){
  headers(res);
  try{

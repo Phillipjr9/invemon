@@ -15,8 +15,8 @@ function sql(parts,...values){return query(parts.reduce((s,p,i)=>s+p+(i<values.l
 sql.transaction=async statements=>pg.transaction(async tx=>{const results=[];for(const s of statements)results.push((await tx.query(s.text,s.values)).rows);return results;});
 mock.module('@neondatabase/serverless',{namedExports:{neon:()=>sql}});
 process.env.DATABASE_URL='postgresql://test-only';process.env.APP_ORIGIN='https://invemon.example';process.env.NODE_ENV='production';
-const {default:auth}=await import('../api/account.mjs');
-const {default:mfa}=await import('../api/mfa.mjs');
+const {default:auth}=await import('../server/routes/account.mjs');
+const {default:mfa}=await import('../server/routes/mfa.mjs');
 async function call(handler,{method='POST',data,cookie,origin='https://invemon.example',ip='1.2.3.4'}={}){
  const headers={};let status=200,value;
  await handler({method,body:data,headers:{origin,cookie,'content-type':'application/json','x-forwarded-for':ip}},{setHeader(k,v){headers[k.toLowerCase()]=v;},status(s){status=s;return this;},json(v){value=v;return this;}});

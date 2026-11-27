@@ -8,7 +8,7 @@ for(const file of fs.readdirSync(new URL('../db/',import.meta.url)).filter(n=>n.
 const sql=(parts,...values)=>pg.query(parts.reduce((s,p,i)=>s+p+(i<values.length?`$${i+1}`:''),''),values).then(r=>r.rows);
 mock.module('@neondatabase/serverless',{namedExports:{neon:()=>sql}});
 process.env.DATABASE_URL='postgresql://test';process.env.APP_ORIGIN='https://invemon.example';process.env.NODE_ENV='production';
-const {default:handler}=await import('../api/goals.mjs');
+const {default:handler}=await import('../server/routes/goals.mjs');
 const user=randomUUID(),other=randomUUID(),token='a'.repeat(64),otherToken='b'.repeat(64),id=randomUUID();
 await pg.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,'goal@example.com','not-a-login'),($2,'other-goal@example.com','not-a-login')",[user,other]);
 for(const [u,t]of [[user,token],[other,otherToken]])await pg.query("INSERT INTO app_sessions(token_hash,user_id,expires_at,mfa_verified) VALUES($1,$2,now()+interval '1 hour',true)",[createHash('sha256').update(t).digest('hex'),u]);
