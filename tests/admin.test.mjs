@@ -8,7 +8,7 @@ for(const file of fs.readdirSync(new URL('../db/',import.meta.url)).filter(n=>n.
 const sql=(parts,...values)=>pg.query(parts.reduce((s,p,i)=>s+p+(i<values.length?`$${i+1}`:''),''),values).then(r=>r.rows);
 mock.module('@neondatabase/serverless',{namedExports:{neon:()=>sql}});
 process.env.DATABASE_URL='postgresql://test';process.env.APP_ORIGIN='https://invemon.example';process.env.NODE_ENV='production';
-const {hashPassword}=await import('../server/core.mjs');const {default:handler}=await import('../api/admin.mjs');
+const {hashPassword}=await import('../server/core.mjs');const {default:handler}=await import('../server/routes/admin.mjs');
 const admin=randomUUID(),customer=randomUUID(),account=randomUUID(),custody=randomUUID(),password='Admin test password only!',token='a'.repeat(64),customerToken='b'.repeat(64);
 await pg.query("INSERT INTO app_users(id,email,password_hash,email_verified_at,mfa_secret) VALUES($1,'admin@example.com',$2,now(),'test-secret'),($3,'customer@example.com',$2,now(),NULL)",[admin,await hashPassword(password),customer]);
 for(const [id,t]of [[admin,token],[customer,customerToken]])await pg.query("INSERT INTO app_sessions(token_hash,user_id,expires_at,mfa_verified) VALUES($1,$2,now()+interval '1 hour',true)",[createHash('sha256').update(t).digest('hex'),id]);

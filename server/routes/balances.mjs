@@ -1,5 +1,5 @@
-import {headers,session,db,HttpError,fail} from '../server/core.mjs';
-import {readLedgerActivity} from '../server/ledger-read.mjs';
+import {headers,session,db,HttpError,fail} from '../core.mjs';
+import {readLedgerActivity} from '../ledger-read.mjs';
 // Read-only, session-scoped accounting balances. Never trusts client account IDs.
 export default async function handler(req,res){
  headers(res);

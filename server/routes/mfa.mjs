@@ -1,5 +1,5 @@
-import { headers,guard,session,body,fail } from '../server/core.mjs';
-import { manageMfa } from '../server/mfa.mjs';
+import { headers,guard,session,body,fail } from '../core.mjs';
+import { manageMfa } from '../mfa.mjs';
 export default async function handler(req,res){
  headers(res);
  try{

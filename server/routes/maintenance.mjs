@@ -1,5 +1,5 @@
-import { db,headers,body,HttpError,fail,randomUUID } from '../server/core.mjs';
-import { requireOperations } from '../server/operations.mjs';
+import { db,headers,body,HttpError,fail,randomUUID } from '../core.mjs';
+import { requireOperations } from '../operations.mjs';
 export default async function handler(req,res){
  headers(res);
  try{

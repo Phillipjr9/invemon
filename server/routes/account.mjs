@@ -1,7 +1,7 @@
-import { consumeSecondFactor, mfaConfigured } from '../server/mfa.mjs';
-import { requestAccountLink, consumeAccountLink } from '../server/account-links.mjs';
-import { emailConfigured, notificationInsert, notificationBucket, tryNotify, attemptUserNotifications } from '../server/notifications.mjs';
-import { db, body, guard, headers, session, account, profile, hashPassword, checkPassword, issueSession, clearSession, rateLimit, audit, sha, randomUUID, HttpError, fail } from '../server/core.mjs';
+import { consumeSecondFactor, mfaConfigured } from '../mfa.mjs';
+import { requestAccountLink, consumeAccountLink } from '../account-links.mjs';
+import { emailConfigured, notificationInsert, notificationBucket, tryNotify, attemptUserNotifications } from '../notifications.mjs';
+import { db, body, guard, headers, session, account, profile, hashPassword, checkPassword, issueSession, clearSession, rateLimit, audit, sha, randomUUID, HttpError, fail } from '../core.mjs';
 export default async function handler(req,res) {
  headers(res);
  try {

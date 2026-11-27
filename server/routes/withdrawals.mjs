@@ -1,5 +1,5 @@
-import {db,headers,guard,session,body,HttpError,fail,rateLimit,checkPassword,randomUUID} from '../server/core.mjs';
-import {destinationEncryptionConfigured,validateDestination,encryptDestination,atomicWithdrawalAmount} from '../server/withdrawals.mjs';
+import {db,headers,guard,session,body,HttpError,fail,rateLimit,checkPassword,randomUUID} from '../core.mjs';
+import {destinationEncryptionConfigured,validateDestination,encryptDestination,atomicWithdrawalAmount} from '../withdrawals.mjs';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export default async function handler(req,res){
  headers(res);

@@ -1,5 +1,5 @@
-import { db, body, guard, headers, session, rateLimit, HttpError, fail } from '../server/core.mjs';
-import { DEFAULT_EMAIL_PREFERENCES, getPreferences, emailConfigured, notificationInsert, notificationBucket, attemptUserNotifications } from '../server/notifications.mjs';
+import { db, body, guard, headers, session, rateLimit, HttpError, fail } from '../core.mjs';
+import { DEFAULT_EMAIL_PREFERENCES, getPreferences, emailConfigured, notificationInsert, notificationBucket, attemptUserNotifications } from '../notifications.mjs';
 export default async function handler(req,res) {
  headers(res);
  try {

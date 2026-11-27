@@ -1,5 +1,5 @@
-import { tryNotify, notificationBucket, attemptUserNotifications } from '../server/notifications.mjs';
-import {db,headers,guard,session,body,HttpError,fail,rateLimit} from '../server/core.mjs';
+import { tryNotify, notificationBucket, attemptUserNotifications } from '../notifications.mjs';
+import {db,headers,guard,session,body,HttpError,fail,rateLimit} from '../core.mjs';
 export default async function handler(req,res){
  headers(res);
  try {

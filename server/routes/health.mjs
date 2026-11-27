@@ -1,7 +1,7 @@
-import { mfaConfigured } from '../server/mfa.mjs';
-import { db,headers,HttpError,fail } from '../server/core.mjs';
-import { requireOperations,REQUIRED_TABLES } from '../server/operations.mjs';
-import { emailConfigured } from '../server/notifications.mjs';
+import { mfaConfigured } from '../mfa.mjs';
+import { db,headers,HttpError,fail } from '../core.mjs';
+import { requireOperations,REQUIRED_TABLES } from '../operations.mjs';
+import { emailConfigured } from '../notifications.mjs';
 export default async function handler(req,res){
  headers(res);
  try{

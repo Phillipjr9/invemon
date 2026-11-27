@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
-import { headers, HttpError, fail } from '../server/core.mjs';
-import { dispatchNotifications } from '../server/notifications.mjs';
+import { headers, HttpError, fail } from '../core.mjs';
+import { dispatchNotifications } from '../notifications.mjs';
 export default async function handler(req,res) {
  headers(res);
  try {

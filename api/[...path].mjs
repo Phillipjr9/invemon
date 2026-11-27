@@ -1,0 +1,17 @@
+// One Vercel function; the original public API URLs are unchanged.
+import {createApiRouter} from '../server/api-router.mjs';
+import account from '../server/routes/account.mjs';
+import admin from '../server/routes/admin.mjs';
+import balances from '../server/routes/balances.mjs';
+import emailDispatch from '../server/routes/email-dispatch.mjs';
+import fundingIpn from '../server/routes/funding-ipn.mjs';
+import funding from '../server/routes/funding.mjs';
+import goals from '../server/routes/goals.mjs';
+import health from '../server/routes/health.mjs';
+import maintenance from '../server/routes/maintenance.mjs';
+import mfa from '../server/routes/mfa.mjs';
+import notifications from '../server/routes/notifications.mjs';
+import support from '../server/routes/support.mjs';
+import withdrawals from '../server/routes/withdrawals.mjs';
+import workspace from '../server/routes/workspace.mjs';
+export default createApiRouter({account,admin,balances,'email-dispatch':emailDispatch,'funding-ipn':fundingIpn,funding,goals,health,maintenance,mfa,notifications,support,withdrawals,workspace});
