@@ -291,7 +291,7 @@ export function DashboardHeader({
               <span className="db-avatar">{initial}</span>
               <span className="db-user-meta">
                 <strong>{firstName}</strong>
-                <small>{account.plan} Plan</small>
+                <small>{account.plan ? `${account.plan} Plan` : 'Personal account'}</small>
               </span>
               <Icon name="chevron" size={14} />
             </button>
@@ -301,7 +301,7 @@ export function DashboardHeader({
                 <div className="db-user-dropdown-head">
                   <strong>{account.name}</strong>
                   <small>{account.email}</small>
-                  <span className="db-tag info">{account.risk || 'Balanced'} risk · {account.plan} Plan</span>
+                  <span className="db-tag info">{account.risk ? `${account.risk} risk · ` : ''}{account.plan ? `${account.plan} Plan` : 'Personal account'}</span>
                 </div>
                 {onOpenProfile && (
                   <button type="button" role="menuitem" onClick={() => { setUserMenuOpen(false); onOpenProfile(); }}>

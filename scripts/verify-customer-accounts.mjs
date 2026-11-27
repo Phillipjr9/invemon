@@ -23,6 +23,17 @@ try{
  for(const name of ['Save demo to cloud','Load cloud demo','Restore sample portfolio','Open sandbox checkout'])assert.equal(await page.getByRole('button',{name,exact:true}).count(),0);
  await page.getByLabel('Full name',{exact:true}).fill('Updated Owner');await page.getByRole('button',{name:'Save profile',exact:true}).click();await page.getByText('Profile saved. This does not place orders or change an investment allocation.',{exact:true}).waitFor();
  for(const width of [390,320]){await page.setViewportSize({width,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}
- await page.getByRole('button',{name:'Overview',exact:true}).click();await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'.playwright/customer-account.png',fullPage:true});
+ await page.getByRole('complementary',{name:'Dashboard workspace navigation'}).getByRole('button',{name:'Overview',exact:true}).click();
+ await page.getByRole('region',{name:'Portfolio summary'}).waitFor();
+ await page.getByRole('tab',{name:'Passive Income',exact:true}).click();await page.getByRole('heading',{name:'No income recorded'}).waitFor();
+ await page.getByRole('tab',{name:'Performance',exact:true}).click();
+ for(const name of ['Withdraw','Invest','Swap','Sell'])assert.equal(await page.getByRole('button',{name,exact:true}).isDisabled(),true);
+ for(const theme of ['light','dark'])for(const width of [1440,390,320]){
+  await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);await page.setViewportSize({width,height:1000});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${theme} overview overflows at ${width}`);
+ }
+ await page.getByRole('button',{name:'More dashboard sections'}).click();await page.getByRole('group',{name:'More dashboard sections'}).getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('heading',{name:'Account & security'}).waitFor();
+ await page.getByRole('complementary',{name:'Dashboard workspace navigation'}).getByRole('button',{name:'Overview',exact:true}).click();
+ await page.evaluate(()=>document.documentElement.dataset.theme='light');await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'.playwright/customer-account.png',fullPage:true});
  assert.deepEqual(errors,[]);console.log('PASS: server registration/profile, ignored browser money, no simulated holdings/actions, clean Settings and 320px layout. HTTP mocked.');
 }finally{await browser.close();}
