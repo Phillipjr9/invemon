@@ -1,3 +1,4 @@
+import FundingSetup from './FundingSetup';
 import AuthenticatorSecurity from './AuthenticatorSecurity';
 import { useState, type FormEvent } from 'react';
 import type { InvestmentAccount } from './Dialogs';
@@ -34,6 +35,7 @@ export default function ServerAccountTools({ account, onAccount, onSignedOut }: 
     <button className="db-btn" type="submit">Save profile</button>
    </form>
    <AuthenticatorSecurity account={account} onAccount={onAccount} />
+   <FundingSetup />
    <details style={{ marginTop: 20 }}><summary>Change password</summary><form className="dialog-form" onSubmit={event => submit(event, 'password')}>
     <label className="db-field">Current password<input type="password" name="currentPassword" required autoComplete="current-password" maxLength={128} /></label>
     <label className="db-field">New password<input type="password" name="password" required minLength={12} maxLength={128} autoComplete="new-password" /></label>
