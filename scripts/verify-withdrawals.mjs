@@ -5,6 +5,9 @@ try{
  const page=await browser.newPage({viewport:{width:1440,height:1050}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
  let enabled=false,saved=false,requested=false,cancelled=false,failRequest=true;const keys=[];
  const id='11111111-1111-4111-8111-111111111111',requestId='22222222-2222-4222-8222-222222222222';
+ await page.route('**/api/inventory-trading',r=>r.fulfill({json:{enabled:false,pairs:[],trades:[]}}));
+ await page.route('**/api/orders',r=>r.fulfill({json:{orders:[],accounts:[],executionEnabled:false,quoteEnabled:false}}));
+ await page.route('**/api/activity**',r=>r.fulfill({json:{entries:[],nextCursor:null,unreadCount:'0'}}));
  await page.route('**/api/account',r=>r.fulfill({json:{account:null}}));
  await page.route('**/api/withdrawals',r=>{
   if(r.request().method()==='POST'){

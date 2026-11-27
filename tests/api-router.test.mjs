@@ -24,7 +24,7 @@ test('unknown, nested, encoded and inherited property paths return JSON 404 with
  }
 });
 test('real consolidated entrypoint retains auth and method denial for all protected routes',async()=>{
- for(const name of ['account','admin','balances','goals','mfa','notifications','support','withdrawals','workspace','funding']){
+ for(const name of ['inventory-trading','orders','activity','account','admin','balances','goals','mfa','notifications','support','withdrawals','workspace','funding']){
   const result=await call(deployed,{url:`/api/${name}`,method:'GET',headers:{}});
   assert.equal(result.status,name==='account'?200:name==='mfa'?405:401,name);
  }

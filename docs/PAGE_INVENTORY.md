@@ -62,3 +62,11 @@ Restored layouts additionally verified with four metric/three content panel asse
 ## Server-backed Goals follow-up
 
 Goals is no longer only a restored layout. `#dashboard?section=goals` now supports owner-scoped server create/edit/archive/restore of USD targets, intended monthly amounts and target dates, with optimistic revisions, exact cents and append-only event metadata. Confirmed savings/progress/contributions remain unavailable; plans do not move/reserve funds. This supersedes earlier missing-goal-storage entries. Migration 011 required; no hosted rollout performed. See CUSTOMER_GOALS.md.
+
+## Unified timeline and inbox follow-up
+
+Activity now includes a paginated unified timeline of posted accounting and customer withdrawal workflow events, alongside the existing ledger section/export. Header notifications use this durable event projection with owner-only persistent read state, unread count and Mark all read. Historical events start unread on rollout; no settlement status is inferred. Migration 012 is required before deployment. See ACCOUNT_ACTIVITY.md for sources and remaining scope. This supersedes the earlier missing-in-app-stream entry; outbound delivery, provider/order lifecycle events and full statements remain unimplemented.
+
+## Order infrastructure follow-up
+
+Portfolio now includes a buy/sell/swap/stock-buy ticket and exact owner-scoped quoted-order history. Internal immutable server-quote acceptance reserves source plus fees atomically with replay/expiry/owner checks; queued cancellation releases it. Public quotes and acceptance remain unavailable, with no environment-only bypass. No automatic execution, fills or custody positions are implemented. Requires migration 013. See ORDER_FOUNDATION.md for the missing adapter/dispatch/fill/settlement work.

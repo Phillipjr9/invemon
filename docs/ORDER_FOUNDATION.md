@@ -1,0 +1,74 @@
+# Order foundation — not live trading
+
+**Current customer crypto model:** see [Internal crypto trading](INTERNAL_CRYPTO_TRADING.md). Portfolio now uses the inventory-backed internal ticket, not the external-provider ticket described below. This older execution infrastructure stays disconnected and is not a requirement for internal trades.
+
+Migration **013_order_foundation.sql** adds internal immutable execution quotes, queued orders and cancellation history. Portfolio now has the buy/sell/swap ticket and order-history layout. The existing header Trade action opens Portfolio. All routes remain inside the one Vercel function.
+
+## Implemented
+
+- Quote contract distinguishes crypto_buy, crypto_sell, crypto_swap and stock_buy, exact source atomic units, source fee atomic units, quoted target quantity/decimals, source account/asset, expiry and unique provider quote reference.
+- Quote creation is internal database work only. There is no customer/admin quote-creation API and no production quote/instrument/fill seed. Trusted future adapters must derive the source account from the verified customer and validate instruments, networks, eligibility, fee terms and executable liquidity.
+- Internal `accept_execution_quote(id,user,quote,requestKey)` serializes acceptance, checks ownership/expiry, reserves source plus source-denominated fee and writes one queued order/event/audit atomically. Stable request keys replay the original order; changed quote payloads conflict. Each quote can be accepted only once.
+- Internal `cancel_execution_order(order,user)` locks the same reservation header, releases held funds and appends cancellation/audit atomically. It is owner-scoped and idempotent. This foundation has no dispatched state; cancellation is valid ONLY because no dispatcher exists. Before introducing a worker, extend the state machine and synchronize dispatch/cancel on the same row lock. Never use this cancellation path unchanged for an externally submitted order.
+- Immutable quotes/order headers/history; no fill state and no balance/position posting from acceptance. Quoted receiving quantity is never treated as a holding. No API accepts client-created prices, execution evidence or fake fill flags.
+- GET `/api/orders` returns latest 100 owned orders and source-account availability, omitting internal provider references. POST cancel requires verified email, MFA-verified session and current password. Auth/origin/body/rate guards apply.
+- POST quote validates operation and request shape, then returns explicit 503 unavailable. POST accept always returns unavailable. There is deliberately NO environment-only switch to bypass missing execution infrastructure.
+- Ticket has all four operation choices, source-asset picker, receive symbol/network field, source amount and disabled quote action. Latest-order history distinguishes queued/cancelled from fills, discloses quoted source fee and masks amounts with dashboard privacy. Existing accounting balances stay separate.
+
+## Still required for automatic trading
+
+This is a tested order bookkeeping contract, NOT a completed execution engine. Missing: supported instrument catalogue/security identifiers; live quote adapters; customer eligibility/limits; signed/approved fee terms; business inventory/collateral validation; durable dispatch/outbox; provider idempotency; unknown-result recovery; acknowledgements/cancel reconciliation; partial/full fills; two-sided accounting and actual custody-backed positions; settlement; trade confirmations; notifications/order-event feed integration; monitoring and operational recovery. No execution adapter, automatic buy/sell/swap, real stock purchase, valuation, returns or tax documents are supplied by this migration.
+
+Do not populate production quotes by copying displayed market prices, marking quotes as executable, or using customer input as provider evidence. Database target quantities alone establish no ownership. Provider/broker/custody arrangements remain separate dependencies; none was chosen or configured here. Crypto/ACH/wire withdrawals remain manual and separate, with earlier completion controls unfinished.
+
+## Deployment and tests
+
+Apply numbered migrations through 013 before deploying. No hosted migrations/settings/deployment were performed here. Existing tables/views and money-service gates are unchanged. Old clients can still read their existing accounting records; `/api/orders` requires the new tables.
+
+Five local PGlite/API tests cover disabled public execution, no environment bypass, exact fee-inclusive reservation, retry conflicts, expired/foreign/mismatched quotes, overspending rollback, owner/password cancellation, immutable records and no fake journal/fill creation. Existing router test verifies one deployed function and protected order reads. HTTP-mocked browser suite checks ticket options, disabled quotes and 320–1440px layout. Hosted multi-connection races and real provider behavior remain untested.
+
+## Durable dispatch follow-up — migration 014
+
+Internal `server/order-dispatch.mjs` now implements dispatch/reconciliation orchestration for trusted adapter objects. No adapter is registered, scheduled worker added or public dispatch/ack endpoint exposed. Quotes/submission remain disabled.
+
+`claim_execution_dispatch` locks the same reservation header as cancellation, checks provider identity/current hold/quote expiry and commits an immutable dispatch intent with the order UUID as stable execution key. Only the first claimant may submit. Once an intent exists, local cancellation cannot release funds. A process crash before/after the external call leaves a dispatch-pending record for reconciliation, NOT an automatically retryable job.
+
+`dispatchOrder` calls a supplied trusted adapter's submit method once and records a submitted acknowledgement or an uncertain outcome. Submit exceptions and malformed acknowledgements keep funds held. Provider errors are not returned to customers. `reconcileOrderDispatch` performs a lookup with the same key; a not-found result remains unresolved rather than retrying submission or releasing money. Provider acknowledgements cannot conflict or be downgraded by a late uncertain event. Provider reference uniqueness is provider-scoped.
+
+Submitted means acknowledgement, NOT a fill. No holdings, ledger debits/credits or returns are created. Customer order history distinguishes queued/cancelled/dispatch-pending/uncertain/submitted and removes cancellation for dispatch-initiated records.
+
+Migration 014 supersedes migration 013's cancellation implementation and is required before deploying the updated order-status query. The full migration runner publishes the numbered schema atomically, preventing temporary publication of the old cancellation guard.
+
+This is a conservative dispatch-intent/recovery contract, not a complete outbox worker. Still missing: real adapter eligibility/quote/expiry validation, provider-side idempotency, lookup guarantees, scheduled worker/reconciliation queues, operator tooling, cancellation-at-provider, proven rejection handling and release, fill/partial-fill reconciliation, two-sided settlement accounting, custody-backed positions, provider security/reliability review and operational authorization. Until those exist, do not enable quote acceptance or use this module to send real orders. Funds can remain held indefinitely on unresolved outcomes; operational recovery must be implemented first.
+
+Six additional local tests cover stable-key one-time submission, timeout/lookup recovery, crash-after-claim handling, dispatch-versus-cancel ordering, provider mismatch, conflicting/late acknowledgements, immutable records and no public dispatch or fabricated fills. Adapters in tests are local test doubles only. Tests do not establish multi-connection correctness or real-provider exactly-once execution.
+
+## Operator queue and bounded worker follow-up
+
+The finance admin workspace now includes read-only Execution recovery: latest 100 orders, a loaded-record exception filter, funds state and dispatch status. It requires the existing verified-email/MFA finance-admin permission and returns no private quote references. There is no force-fill, resubmit or fund-release control. This is visibility, not a complete resolution console.
+
+`server/order-worker.mjs` provides on-demand dispatch/reconcile batches of 1–10 orders. It selects only explicitly registered server adapters. Dispatch excludes claimed/cancelled/expired/no-longer-held orders; reconciliation looks up claims older than 30 seconds without an acknowledgement. Result errors are sanitized as needs_review. No database transaction spans a network call. Existing durable claims prevent repeat submission across competing workers; real multi-connection testing is still needed.
+
+POST `/api/order-worker` requires the existing private OPS_SECRET bearer authorization, JSON mode (`dispatch` or `reconcile`) and integer limit (1–10). It rejects request-configured providers, endpoints and adapter objects. It shares the existing single Vercel function; no extra function or scheduled cron was added. Do not expose OPS_SECRET to customer browsers or put it in VITE_ variables.
+
+`server/execution-adapters.mjs` is deliberately an EMPTY reviewed-code registry. With no adapter the worker returns enabled:false without scanning orders or calling a provider. Neither environment flags nor admin clicks can turn missing providers into executable services. Tests inject local test doubles only. No production provider, scheduler, external order or hosted setting is configured here.
+
+Before registering any adapter, implement provider-specific authenticated requests, strict timeout budgets within Vercel's 30-second duration, executable quote/instrument/eligibility verification, idempotency, reliable lookup, reconciliation/settlement/fill accounting and operator handling. Batches run sequentially and currently have no global lease/backoff/fair retry scheduling; the oldest unresolved claims can starve newer ones. No timeout-based release or blind dispatch retry is permitted. Schedule only after those controls and deployment/migration verification exist.
+
+Five added tests cover disabled registry, batch validation, provider-bound dispatch once, unresolved lookup without resubmission or fund release, operations bearer/config guards, and restricted admin visibility. Browser checks cover the admin exception queue and responsive layout. No new migration after 014 is needed for this follow-up; the updated admin query depends on tables through 014.
+
+## Verified-fill staging and atomic crypto settlement — migration 015
+
+`execution_fills` records exact independently verified executions, provider/fill identity, source/target atomic units, source fees and unique evidence references. A matching acknowledged dispatch is required; stable replays return the same fill, changed payloads conflict, cumulative source/fee amounts cannot exceed the accepted quote, and new fills cannot enter a closed order. These are trusted internal functions, NOT a verifier implementation. The word verified describes a REQUIRED caller precondition; accepting an evidence string does not prove execution.
+
+`server/order-settlement.mjs` exposes only internal recordVerifiedFill and settleVerifiedCryptoExecution wrappers. Neither customers, admins nor the worker can call them through HTTP. No provider adapter invokes them. No production records are seeded.
+
+Partial fills are staged, not posted immediately: full source/fee reservation remains held and target assets are not spendable until terminal reconciliation. This deliberately conservative model does not provide real-time partial-fill holdings. After independent verification of final completion/cancellation and actual custody movements, settlement posts one per-asset-balanced journal for actual aggregate source/fees and target quantity. It validates owned matching target asset/network/precision and business custody/fee accounts, debits source liability, credits target liability and releases unused reservation in the SAME transaction. The reservation ends released with an explicit settlement reason, not consumed by a fabricated full-quote debit. Settlement retries replay the same order journal; conflicts fail. Database errors roll back journal, settlement row and hold release together.
+
+For filled orders, target quantity must meet the quoted receiving amount; partial cancellation permits the verified smaller total. A future adapter MUST independently confirm the remote order is terminal and all fills are present before invoking settlement. Zero-fill rejections/cancellations, external cancellation, fee currencies other than the source asset, rebates, source/fee overruns, corrections/busts and corporate actions remain unsupported.
+
+Stock executions can be staged but settlement is explicitly BLOCKED until real security identifiers, position accounting and a verified custody/ownership mapping are implemented. No ledger asset symbol or staged fill establishes share ownership. Crypto custody verification and collateral reconciliation also remain required external controls, not established by journal entries. This model accounts for externally verified custody movements, not an inventory-backed exchange or proof of business reserves.
+
+Order and admin state reads distinguish fills_pending_settlement, settled_filled and settled_partial from acknowledgements. A filled accounting state is not independent proof of receipt. Existing unified activity includes the resulting owner-scoped journal; a full order-lifecycle notification stream is still absent.
+
+Apply migrations through 015 before deploying updated order/admin queries. No hosted migration or financial enablement performed. Seven local settlement tests cover staged partial/replay/overfill behavior, exact fee-inclusive multi-asset postings, owned account mapping, minimum receiving quantity, full and partial close, conflict/evidence rollback, securities blocking and append-only history. Tests use isolated fixtures; no real provider or custody was verified. Hosted race/deadlock retries and operational reconciliation testing remain necessary.

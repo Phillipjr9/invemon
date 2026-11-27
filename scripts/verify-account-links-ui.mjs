@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||undefined,args:['--no-sandbox']});
 try {
  const page=await browser.newPage(),calls=[];
+ await page.route('**/api/inventory-trading',r=>r.fulfill({json:{enabled:false,pairs:[],trades:[]}}));
+ await page.route('**/api/orders',r=>r.fulfill({json:{orders:[],accounts:[],executionEnabled:false,quoteEnabled:false}}));
+ await page.route('**/api/activity**',r=>r.fulfill({json:{entries:[],nextCursor:null,unreadCount:'0'}}));
  await page.route('**/api/account',async route=>{const req=route.request();if(req.method()==='POST')calls.push(req.postDataJSON());await route.fulfill({json:req.method()==='GET'?{account:null}:{ok:true}});});
  const base=process.env.SERVER_TEST_BASE_URL||'http://localhost:5187',token='a'.repeat(64);
  await page.goto(`${base}/#login`);

@@ -74,3 +74,55 @@ test('order holds and already-released withdrawals cannot be reviewed',async()=>
  await pg.query('SELECT release_customer_funds($1,$2,$3)',[customer,released,'Customer cancelled']);
  assert.equal((await review(0,'approved',{id:order})).status,404);assert.equal((await review(0,'approved',{id:released})).status,409);
 });
+
+let dealerInventory,cryptoInventory,policy;
+const dealerCall=(operation,config,extra={})=>call({method:'POST',data:{action:'inventory',operation,config,note:'Reviewed internal policy test only',currentPassword:password,...extra}});
+test('inventory controls require finance authorization, origin and password; default view is honest empty',async()=>{
+ const view=await call({query:{view:'inventory'}});assert.equal(view.status,200);assert.deepEqual(view.body.inventories,[]);assert.equal(view.body.fundingEnabled,false);
+ assert.equal((await call({query:{view:'inventory'},auth:customerToken})).status,403);
+ assert.equal((await dealerCall('inventory.register',{asset:'USD:BANK'},{currentPassword:'wrong'})).status,401);
+ assert.equal((await call({method:'POST',origin:'https://evil.example',data:{action:'inventory'}})).status,403);
+ assert.equal((await dealerCall('set-balance',{})).status,400);
+});
+test('registering approved inventory and recording evidence never credits money',async()=>{
+ await pg.exec("INSERT INTO ledger_assets VALUES('BTC:BITCOIN',8);INSERT INTO dealer_assets VALUES('USD:BANK','cash'),('BTC:BITCOIN','crypto')");
+ const before=(await pg.query('SELECT count(*) FROM ledger_journals')).rows[0].count;
+ assert.equal((await dealerCall('inventory.register',{asset:'STOCK:FAKE'})).status,409);
+ const usd=await dealerCall('inventory.register',{asset:'USD:BANK'});assert.equal(usd.status,200);dealerInventory=usd.body.id;
+ const btc=await dealerCall('inventory.register',{asset:'BTC:BITCOIN'});assert.equal(btc.status,200);cryptoInventory=btc.body.id;
+ assert.equal((await dealerCall('inventory.evidence',{reference:'internal-reconciliation-ticket-001'},{id:cryptoInventory})).status,200);
+ assert.equal((await pg.query('SELECT count(*) FROM ledger_journals')).rows[0].count,before);
+ const view=(await call({query:{view:'inventory'}})).body;assert.ok(view.inventories.every(i=>i.units==='0'));assert.equal(view.events[0].after_state.verified,false);assert.equal(view.events[0].after_state.creditPosted,false);
+});
+const policyConfig=()=>({sourceAsset:'USD:BANK',targetAsset:'BTC:BITCOIN',sourceInventory:dealerInventory,targetInventory:cryptoInventory,numerator:'1',denominator:'10',feeBps:100,minUnits:'1',maxUnits:'10000',validUntil:new Date(Date.now()+3600000).toISOString(),enabled:true});
+test('pricing changes audit before/after, reject stale revisions and preserve mappings',async()=>{
+ policy=randomUUID();const config=policyConfig();
+ assert.equal((await dealerCall('pair.save',config,{id:policy,revision:0})).status,200);
+ assert.equal((await dealerCall('pair.save',{...config,enabled:false},{id:policy,revision:1})).status,200);
+ assert.equal((await dealerCall('pair.save',config,{id:policy,revision:1})).status,409);
+ assert.equal((await dealerCall('pair.save',{...config,sourceInventory:cryptoInventory},{id:policy,revision:2})).status,409);
+ const view=(await call({query:{view:'inventory'}})).body;assert.equal(view.pairs[0].revision,2);assert.equal(view.pairs[0].enabled,false);assert.equal(view.events[0].before_state.enabled,true);assert.equal(view.events[0].after_state.enabled,false);
+});
+test('invalid rates, fees, limits, expiries, missing audit notes and existing pairs are rejected',async()=>{
+ const config=policyConfig();
+ for(const patch of [{numerator:'0'},{numerator:'1.1'},{feeBps:1001},{minUnits:'10001'},{validUntil:'not-a-date'}])assert.equal((await dealerCall('pair.save',{...config,...patch},{id:policy,revision:2})).status,400);
+ assert.equal((await dealerCall('pair.save',{...config,validUntil:new Date(Date.now()+8*86400000).toISOString()},{id:policy,revision:2})).status,409);
+ assert.equal((await dealerCall('pair.save',config,{id:policy,revision:2,note:' '})).status,400);
+ assert.equal((await dealerCall('pair.save',config,{id:randomUUID(),revision:0})).status,409);
+ assert.equal((await dealerCall('inventory.evidence',{reference:''},{id:cryptoInventory})).status,400);
+ for(const stmt of ['DELETE FROM dealer_admin_events','TRUNCATE dealer_admin_events',"UPDATE dealer_admin_events SET note='rewrite'"])await assert.rejects(pg.exec(stmt),/immutable/);
+});
+test('audit failure rolls back inventory configuration',async()=>{
+ await pg.exec("CREATE FUNCTION fail_dealer_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test audit failure'; END; $$;CREATE TRIGGER test_dealer_audit BEFORE INSERT ON dealer_admin_events FOR EACH ROW EXECUTE FUNCTION fail_dealer_audit()");
+ assert.equal((await dealerCall('pair.save',{...policyConfig(),feeBps:300},{id:policy,revision:2})).status,500);
+ await pg.exec('DROP TRIGGER test_dealer_audit ON dealer_admin_events');
+ const row=(await pg.query('SELECT revision,fee_bps FROM dealer_pairs WHERE id=$1',[policy])).rows[0];assert.equal(row.revision,2);assert.equal(row.fee_bps,100);
+});
+test('admin pair pause blocks acceptance of a previously issued customer quote',async()=>{
+ const config=policyConfig();
+ assert.equal((await dealerCall('pair.save',config,{id:policy,revision:2})).status,200);
+ const quoteId=randomUUID();await pg.query('SELECT create_dealer_quote($1,$2,$3,$4)',[quoteId,customer,policy,'100']);
+ assert.equal((await dealerCall('pair.save',{...config,enabled:false},{id:policy,revision:3})).status,200);
+ await assert.rejects(pg.query('SELECT accept_dealer_quote($1,$2)',[quoteId,customer]),/expired or pair disabled/);
+ assert.equal((await pg.query('SELECT count(*) FROM dealer_trades')).rows[0].count,0);
+});
