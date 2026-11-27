@@ -1,3 +1,4 @@
+import FundingPage from './pages/FundingPage';
 import SupportPage from './pages/SupportPage';
 import AccountLinkPage from './pages/AccountLinkPage';
 import { useEffect, useState } from 'react';
@@ -12,10 +13,10 @@ import ServerAuthPage from './pages/ServerAuthPage';
 import ServerAccountTools from './components/ServerAccountTools';
 import { SERVER_ACCOUNTS, api, accountAction } from './services/api';
 
-type View = 'home' | 'signup' | 'login' | 'dashboard' | 'emails' | 'reset' | 'verify' | 'support';
+type View = 'home' | 'signup' | 'login' | 'dashboard' | 'emails' | 'reset' | 'verify' | 'support' | 'funding';
 const getView = (): View => {
   const path = window.location.hash.slice(1).split('?')[0];
-  return ['signup', 'login', 'dashboard', 'emails', 'reset', 'verify', 'support'].includes(path) ? path as View : 'home';
+  return ['signup', 'login', 'dashboard', 'emails', 'reset', 'verify', 'support', 'funding'].includes(path) ? path as View : 'home';
 };
 export default function App() {
   const [view, setView] = useState<View>(getView);
@@ -46,6 +47,8 @@ export default function App() {
   const dashboard = () => navigate('dashboard');
   return <>
     <ThemeToggle />
+    {view === 'funding' && !sessionReady && <main className="login-main" role="status">Checking your account session…</main>}
+    {view === 'funding' && sessionReady && <FundingPage account={SERVER_ACCOUNTS ? account : null} onBack={dashboard} onLogin={login} />}
     {view === 'support' && <SupportPage signedIn={SERVER_ACCOUNTS && Boolean(account?.serverUserId)} onBack={dashboard} onLogin={login} />}
     {(view === 'reset' || view === 'verify') && <AccountLinkPage key={view} purpose={view} onLogin={login} />}
     {view === 'emails' && <EmailStudio onBack={account ? dashboard : home} />}

@@ -74,3 +74,13 @@ test('bank drafts require independent allowlist MFA and password; stale revision
  assert.equal((await call(funding,{cookie:other.cookie,data:{action:'bank-status'}})).status,403);
  assert.equal((await pg.query('SELECT * FROM bank_instruction_versions')).rows.length,1);
 });
+
+test('provider rejection reports safe status and never exposes provider response or credentials',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async()=>new Response(JSON.stringify({message:'sensitive recipient credentials'}),{status:403});
+ try{
+  const result=await call(funding,{ip:'safe-errors',cookie:owner.cookie,data:{action:'create-invoice',amount:'10'}});
+  assert.equal(result.status,502);assert.match(result.value.error,/HTTP 403/);
+  assert.equal(JSON.stringify(result.value).includes('sensitive recipient'),false);
+ }finally{globalThis.fetch=original;}
+});

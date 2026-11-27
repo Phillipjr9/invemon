@@ -40,8 +40,11 @@ export async function createSandboxInvoice(user,amount){
  await sql`INSERT INTO funding_requests(id,user_id,amount_usd) VALUES(${id},${user.id},${normalized})`;
  // No retry on ambiguous provider failures: it could create duplicate invoices.
  try{
-  const response=await fetch('https://api-sandbox.nowpayments.io/v1/invoice',{method:'POST',signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/json','x-api-key':process.env.NOWPAYMENTS_SANDBOX_API_KEY},body:JSON.stringify({price_amount:Number(normalized),price_currency:'usd',order_id:id,order_description:'Invemon SANDBOX funding test — no investment balance credit',ipn_callback_url:`${origin.origin}/api/funding-ipn`,success_url:`${origin.origin}/#dashboard`,cancel_url:`${origin.origin}/#dashboard`})});
-  if(!response.ok)throw new HttpError(502,'Sandbox payment provider rejected the request.');
+  const response=await fetch('https://api-sandbox.nowpayments.io/v1/invoice',{method:'POST',signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/json','x-api-key':process.env.NOWPAYMENTS_SANDBOX_API_KEY},body:JSON.stringify({price_amount:Number(normalized),price_currency:'usd',order_id:id,order_description:'Invemon SANDBOX funding test — no investment balance credit',ipn_callback_url:`${origin.origin}/api/funding-ipn`,success_url:`${origin.origin}/#funding`,cancel_url:`${origin.origin}/#funding`})});
+  if(!response.ok){
+   const category=[401,403].includes(response.status)?'Check that sandbox credentials are used.':response.status===429?'Provider rate limit reached; wait before retrying.':'Check sandbox store configuration and request requirements.';
+   throw new HttpError(502,`Sandbox payment provider rejected the request (HTTP ${response.status}). ${category}`);
+  }
   const result=await response.json(),url=providerInvoiceUrl(result.invoice_url),providerId=String(result.id||'');
   if(!/^\d{1,40}$/.test(providerId))throw new HttpError(502,'Invalid sandbox invoice identifier.');
   await sql`UPDATE funding_requests SET provider_id=${providerId},invoice_url=${url},status='waiting',updated_at=now() WHERE id=${id}`;
