@@ -4,6 +4,7 @@ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTA
 try{
  const page=await browser.newPage({viewport:{width:1440,height:1000}});let signed=false;const calls=[];
  const account={serverUserId:'mfa-test',name:'Security Tester',email:'mfa@example.com',plan:'Free',risk:'Balanced',country:'United States',emailVerified:true,mfaEnabled:false};
+ await page.route('**/api/orders',r=>r.fulfill({json:{orders:[],accounts:[],executionEnabled:false,quoteEnabled:false}}));
  await page.route('**/api/activity**',r=>r.fulfill({json:{entries:[],nextCursor:null,unreadCount:'0'}}));
  await page.route('**/api/account',async route=>{const input=route.request().method==='GET'?null:route.request().postDataJSON();if(input)calls.push(input);if(input?.action==='security-overview'){await route.fulfill({json:{sessions:[],sessionCount:0,events:[]}});return;}if(input?.action==='login'&&input.code==='123456')signed=true;await route.fulfill({json:input?.action==='login'&&!signed?{mfaRequired:true}:{account:signed?account:null}});});
  await page.route('**/api/workspace',route=>route.fulfill({json:{workspace:null}}));

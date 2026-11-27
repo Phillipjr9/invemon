@@ -6,6 +6,7 @@ try{
  const entry={id:'review:11111111-1111-4111-8111-111111111111',reference:'request-id',created_at:'2026-11-27T10:00:00Z',kind:'withdrawal_approved',title:'Withdrawal approved',description:'Funds remain reserved. Approval is not payment.',destination:'withdrawals',amounts:[]};
  await page.route('**/api/account',r=>r.fulfill({json:{account:{serverUserId:'activity-user',name:'Account Owner',email:'activity@example.com',plan:'Free',country:'United States',risk:'Balanced'}}}));
  await page.route('**/api/balances**',r=>r.fulfill({json:{balances:[],entries:[],nextCursor:null}}));
+ await page.route('**/api/orders',r=>r.fulfill({json:{orders:[],accounts:[],executionEnabled:false,quoteEnabled:false}}));
  await page.route('**/api/activity**',r=>{
   if(r.request().method()==='POST'){read=true;return r.fulfill({json:{ok:true}});}
   if(failRead)return r.fulfill({status:503,json:{error:'Activity temporarily unavailable'}});

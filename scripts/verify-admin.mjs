@@ -5,6 +5,7 @@ try{
  const page=await browser.newPage({viewport:{width:1440,height:1050}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
  let allowed=false,revision=0,decision='pending',conflict=false,posts=0;
  const id='11111111-1111-4111-8111-111111111111',customer='22222222-2222-4222-8222-222222222222';
+ await page.route('**/api/orders',r=>r.fulfill({json:{orders:[],accounts:[],executionEnabled:false,quoteEnabled:false}}));
  await page.route('**/api/activity**',r=>r.fulfill({json:{entries:[],nextCursor:null,unreadCount:'0'}}));
  await page.route('**/api/account',r=>r.fulfill({json:{account:null}}));
  await page.route('**/api/admin**',r=>{

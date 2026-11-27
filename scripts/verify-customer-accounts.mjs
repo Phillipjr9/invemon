@@ -4,6 +4,7 @@ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTA
 try{
  const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
  let account=null,balanceFails=false,cryptoFails=false,passwordCalls=0,securityFails=false,hasLedgerRecords=false;
+ await page.route('**/api/orders',r=>r.fulfill({json:{orders:[],accounts:[],executionEnabled:false,quoteEnabled:false}}));
  await page.route('**/api/activity**',r=>r.fulfill({json:{entries:[],nextCursor:null,unreadCount:'0'}}));
  await page.route('**/api/balances**',r=>r.fulfill(r.request().url().includes('view=activity')?{json:{entries:hasLedgerRecords?[{id:'11111111-1111-4111-8111-111111111111',created_at:'2026-11-27T10:00:00Z',reversal:false,changes:[{asset:'USD:BANK',units:'12345',decimals:2}]}]:[],nextCursor:null,notice:'Accounting entries only'}}:balanceFails?{status:503,json:{error:'Balance service unavailable'}}:{json:{balances:hasLedgerRecords?[{asset:'USD:BANK',units:'12345',reservedUnits:'2345',unreservedUnits:'10000',decimals:2},{asset:'BTC:BITCOIN',units:'123456789012345678',decimals:8}]:[],source:'ledger',liveEnabled:false}}));
  await page.route('https://s3.tradingview.com/**',r=>r.abort());
@@ -101,5 +102,8 @@ try{
  }
  await page.goto(`${base}/`);await page.getByRole('button',{name:/Contact & support/}).click();await page.waitForURL('**/#support');
  assert.equal(await page.getByRole('dialog',{name:'Account services'}).count(),0);
+ await page.goto(`${base}/#dashboard?section=portfolio`);const trading=page.getByRole('region',{name:'Trading orders'});await trading.getByRole('heading',{name:'Buy, sell & swap'}).waitFor();
+ for(const operation of ['crypto_buy','crypto_sell','crypto_swap','stock_buy']){await trading.getByLabel('Order operation',{exact:true}).selectOption(operation);assert.equal(await trading.getByRole('button',{name:'Get executable quote · unavailable',exact:true}).isDisabled(),true);}
+ for(const width of [1440,390,320]){await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}
  assert.deepEqual(errors,[]);console.log('PASS: server registration/profile, ignored browser money, no simulated holdings/actions, clean Settings and 320px layout. HTTP mocked.');
 }finally{await browser.close();}
