@@ -13,6 +13,7 @@ import { SERVER_ACCOUNTS, api, accountAction } from './services/api';
 type View = 'home' | 'signup' | 'login' | 'dashboard' | 'emails' | 'reset' | 'verify' | 'support' | 'funding';
 const getView = (): View => {
   const path = window.location.hash.slice(1).split('?')[0];
+  if(path === 'deposit') return 'funding';
   return ['signup', 'login', 'dashboard', 'emails', 'reset', 'verify', 'support', 'funding'].includes(path) ? path as View : 'home';
 };
 export default function App() {
