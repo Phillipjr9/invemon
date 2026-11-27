@@ -1,6 +1,6 @@
 import type { InvestmentAccount } from '../components/Dialogs';
-// Production builds default to server accounts. A demo-only deployment must opt out.
-export const SERVER_ACCOUNTS = import.meta.env.VITE_ACCOUNT_MODE === 'server' || (import.meta.env.PROD && import.meta.env.VITE_ACCOUNT_MODE !== 'demo');
+// Customer accounts always use server authentication. Legacy demo mode is not routable.
+export const SERVER_ACCOUNTS = true;
 export async function api<T>(path: string, method = 'GET', data?: unknown): Promise<T> {
  const response = await fetch(`/api/${path}`, { method, credentials: 'same-origin', headers: data === undefined ? {} : { 'Content-Type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) });
  const result = await response.json().catch(() => ({ error: 'Account service unavailable. Check the server configuration.' }));

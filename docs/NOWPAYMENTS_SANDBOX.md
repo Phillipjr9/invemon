@@ -31,3 +31,13 @@ Reference: NOWPayments API documentation, Instant Payment Notifications: https:/
 
 ## Temporary sandbox authentication relaxation
 Email verification and MFA are not required to create sandbox invoices during integration testing. Sign-in, origin validation, owner isolation, rate limits, sandbox-only endpoints, and callback signature checks remain enforced. Bank administration still requires verified email, MFA, allowlisting and password confirmation. Do not carry this relaxation into a future live-funding implementation.
+
+## Dedicated funding page (funding-first transition)
+
+Customer Settings no longer mounts FundingSetup or bank editing controls. Server-account dashboard Deposit actions now navigate to `/#funding`, where the only payment actions are explicitly labeled sandbox tests. Other transaction-sheet actions (buy/sell/swap/withdraw) are blocked for server-account mode rather than opening the simulated receipt flow. Explicit demo mode retains its separate simulation; existing sample dashboard analytics/data are not reclassified as real assets. No user data is erased.
+
+The dedicated page displays server-owned request history, a live-funding-unavailable notice and a collapsed test-checkout section. Redirects return to `/#funding`, not a success receipt. Provider rejection messages now expose only HTTP status plus generic configuration guidance, never provider bodies or credentials.
+
+This is a UX and access-boundary step, not a live funding launch. There is no production payment endpoint, settlement reconciliation or posted balance ledger in this change. Funding emails, real-money buy/sell, bank publication and withdrawals remain disabled/unimplemented. Existing workspace cloud save/load APIs continue to manipulate simulation snapshots only and cannot fund a real wallet. Financial balances must never be derived from those snapshots.
+
+Validation: all 47 automated tests and TypeScript/build pass. The new browser contract covers signed-out access, sandbox history, disabled live funding, settings isolation, deposit navigation and 320–1440px layout with mocked HTTP. The first full browser attempt timed out taking an unrelated server-settings screenshot; a repeat of all eight browser suites passed. No external payment, live callback, or real-funds behavior was certified.

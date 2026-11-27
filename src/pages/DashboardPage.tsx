@@ -921,6 +921,11 @@ export default function DashboardPage({
   }, [state.holdings]);
 
   const openTrade = useCallback((mode: TradeMode, symbol?: string, goalId?: string) => {
+    if (SERVER_ACCOUNTS) {
+      if (mode === 'deposit') window.location.hash = 'funding';
+      else setToast('Live trading, swaps and withdrawals are not available. No order was placed and no funds moved.');
+      return;
+    }
     setTrade({ mode, symbol, goalId });
   }, []);
 
@@ -1202,7 +1207,7 @@ export default function DashboardPage({
   const openNotification = (notice: HeaderNotice) => {
     setState(current => ({ ...current, readNotificationIds: [...new Set([...current.readNotificationIds, notice.id])] }));
     navigateDashboard(notice.section);
-    if (notice.task === 'deposit') setTrade({ mode: 'deposit' });
+    if (notice.task === 'deposit') openTrade('deposit');
   };
   const markNotificationsRead = () => setState(current => ({ ...current, readNotificationIds: [...new Set([...current.readNotificationIds, ...dashboardNotifications.map(item => item.id)])] }));
   const runNextPlan = () => { if (nextPlan) runPlan(nextPlan); else navigateDashboard('autoinvest'); };
@@ -2410,7 +2415,7 @@ export default function DashboardPage({
         />
       )}
 
-      {trade && (
+      {trade && !SERVER_ACCOUNTS && (
         <TransactionSheet
           initial={trade}
           assets={assetOptions}

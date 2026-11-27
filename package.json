@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run emails:preview && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate-neon.mjs",
     "test:api": "node --experimental-test-module-mocks --test tests/api.test.mjs",
     "test:math": "node --import tsx --test tests/investment-math.test.ts",
-    "test": "npm run test:math && npm run test:api && npm run test:emails && npm run test:links && npm run test:operations && npm run test:migrations && npm run test:mfa && npm run test:smoke && npm run test:funding",
+    "test": "npm run test:math && npm run test:api && npm run test:emails && npm run test:links && npm run test:operations && npm run test:migrations && npm run test:mfa && npm run test:smoke && npm run test:funding && npm run test:ledger",
     "emails:preview": "node scripts/generate-email-previews.mjs",
     "test:emails": "node --experimental-test-module-mocks --test tests/email.test.mjs",
     "test:links": "node --experimental-test-module-mocks --test tests/account-links.test.mjs",
@@ -20,7 +20,8 @@
     "test:mfa": "node --experimental-test-module-mocks --test tests/mfa.test.mjs",
     "smoke:deployment": "node --env-file-if-exists=.env scripts/smoke-deployment.mjs",
     "test:smoke": "node --test tests/smoke-deployment.test.mjs",
-    "test:funding": "node --experimental-test-module-mocks --test tests/funding.test.mjs"
+    "test:funding": "node --experimental-test-module-mocks --test tests/funding.test.mjs",
+    "test:ledger": "node --experimental-test-module-mocks --test tests/ledger.test.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.1",

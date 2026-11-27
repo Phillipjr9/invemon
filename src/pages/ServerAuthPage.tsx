@@ -24,7 +24,7 @@ export default function ServerAuthPage({ register, onBack, onSwitch, onComplete 
   <div className="login-editorial-copy"><span className="login-editorial-kicker">A LONGER-TERM PERSPECTIVE</span><h2>Great things<br />are built<br /><em>over time.</em></h2><p>Your own space to explore a more considered approach.</p></div>
  </aside><main className="login-main"><div className="login-form-wrap"><section className="login-section">
   <span className="login-welcome">{register ? 'YOUR NEXT CHAPTER' : 'WELCOME BACK'}</span><h1>{recover ? 'Recover your account' : register ? 'Create your account' : 'Sign in to Invemon'}</h1>
-  <p className="login-lede">Secure account access. The investment workspace remains a simulation—no real trades or transfers.</p>
+  <p className="login-lede">Secure account access. Customer funding and investment execution are not yet open.</p>
   {error && <p className="login-alert is-error" role="alert">{error}</p>}
   {notice && <p role="status" className="login-alert">{notice}</p>}
   <form className="login-form" onSubmit={submit}>
@@ -35,7 +35,7 @@ export default function ServerAuthPage({ register, onBack, onSwitch, onComplete 
    {register && <><div className="login-field"><label htmlFor="server-country">Country of residence</label><select id="server-country" name="country">{COUNTRIES.map(country => <option key={country}>{country}</option>)}</select></div>
     <div className="login-field"><label htmlFor="server-risk">Investment risk profile</label><select id="server-risk" name="risk" defaultValue="Balanced">{RISK_BLUEPRINTS.map(risk => <option key={risk.id}>{risk.id}</option>)}</select></div>
     <div className="login-field"><label htmlFor="server-monthly">Illustrative monthly investment (USD)</label><input id="server-monthly" name="monthlyAmount" type="number" min="0" max="1000000" step="1" defaultValue="250" required /></div>
-    <label className="login-remember"><input type="checkbox" required /> I understand this is a simulated investment workspace, not a funded investment account.</label></>}
+    <label className="login-remember"><input type="checkbox" required /> I understand registration does not open a brokerage account or enable funding or investment execution.</label></>}
    <button className="login-primary" type="submit" disabled={busy}>{busy ? 'Please wait…' : recover ? 'Send reset link' : register ? 'Create account' : 'Log in'}</button>
   </form>
   {!register && <button className="login-back" type="button" disabled={busy} onClick={() => { setRecover(!recover); setMfaRequired(false); setError(''); setNotice(''); }}>{recover ? 'Return to password sign-in' : 'Forgot your password?'}</button>}

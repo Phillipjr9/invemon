@@ -12,3 +12,5 @@ image-search/
 
 # Local art-generation Python environment
 .venv/
+
+.email-previews/
