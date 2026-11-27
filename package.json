@@ -5,25 +5,47 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "npm run emails:preview && vite build",
+    "preview": "vite preview",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate-neon.mjs",
+    "test:api": "node --experimental-test-module-mocks --test tests/api.test.mjs",
+    "test:math": "node --import tsx --test tests/investment-math.test.ts",
+    "test": "npm run test:math && npm run test:api && npm run test:emails && npm run test:links && npm run test:operations && npm run test:migrations && npm run test:mfa && npm run test:smoke",
+    "emails:preview": "node scripts/generate-email-previews.mjs",
+    "test:emails": "node --experimental-test-module-mocks --test tests/email.test.mjs",
+    "test:links": "node --experimental-test-module-mocks --test tests/account-links.test.mjs",
+    "test:browser": "node scripts/verify-browser.mjs",
+    "test:operations": "node --experimental-test-module-mocks --test tests/support-operations.test.mjs",
+    "test:migrations": "node --experimental-test-module-mocks --test tests/migrations.test.mjs",
+    "test:mfa": "node --experimental-test-module-mocks --test tests/mfa.test.mjs",
+    "smoke:deployment": "node --env-file-if-exists=.env scripts/smoke-deployment.mjs",
+    "test:smoke": "node --test tests/smoke-deployment.test.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.1",
     "clsx": "2.1.1",
+    "otpauth": "^9.6.0",
+    "qrcode": "^1.5.4",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "tailwind-merge": "3.4.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.6.0",
     "@tailwindcss/vite": "4.1.17",
     "@types/node": "22.19.17",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.1.1",
     "playwright": "^1.65.1",
     "tailwindcss": "4.1.17",
+    "tsx": "^4.23.15",
     "typescript": "5.9.3",
     "vite": "7.3.7",
     "vite-plugin-singlefile": "2.3.0"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

@@ -14,6 +14,8 @@ import {
 } from '../services/auth';
 import './auth.css';
 import './login.css';
+import { Wordmark } from './HomePage';
+import './login-editorial.css';
 
 type Props = {
   account: InvestmentAccount | null;
@@ -95,222 +97,6 @@ function OtpInputs({
           aria-label={`Digit ${idx + 1}`}
         />
       ))}
-    </div>
-  );
-}
-
-type PreviewTF = '1D' | '1W' | '1M' | '1Y';
-
-const PREVIEW_SERIES: Record<PreviewTF, { start: number; end: number; benchEnd: number; labels: string[]; seed: number }> = {
-  '1D': { start: 127182.44, end: 128430.62, benchEnd: 127980.1, labels: ['9:30a', '11a', '12:30p', '2p', '4p'], seed: 11 },
-  '1W': { start: 124860.0, end: 128430.62, benchEnd: 126940.4, labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], seed: 29 },
-  '1M': { start: 118940.0, end: 128430.62, benchEnd: 124180.9, labels: ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4'], seed: 47 },
-  '1Y': { start: 96400.0, end: 128430.62, benchEnd: 118520.3, labels: ['Q1', 'Q2', 'Q3', 'Q4'], seed: 83 },
-};
-
-const PREVIEW_HOLDINGS = [
-  { symbol: 'VTI', name: 'Vanguard Total Market', meta: 'ETF · 42.6%', value: '$54,714', change: '+0.42%', up: true, tone: 'is-etf', spark: [42, 40, 41, 38, 39, 35, 36, 32, 33, 29, 30, 26] },
-  { symbol: 'AAPL', name: 'Apple Inc.', meta: 'Stock · 18.2%', value: '$23,382', change: '+1.82%', up: true, tone: '', spark: [38, 39, 36, 37, 33, 34, 31, 32, 28, 29, 25, 22] },
-  { symbol: 'NVDA', name: 'NVIDIA Corp.', meta: 'Stock · 9.4%', value: '$12,072', change: '+2.41%', up: true, tone: 'is-chip', spark: [44, 42, 43, 39, 40, 35, 36, 31, 32, 27, 28, 22] },
-  { symbol: 'BND', name: 'Total Bond Market', meta: 'Bonds · 11.9%', value: '$15,290', change: '−0.18%', up: false, tone: 'is-bond', spark: [26, 27, 26, 28, 27, 29, 28, 30, 29, 31, 30, 32] },
-];
-
-const PREVIEW_ALLOC = [
-  { label: 'Stocks', pct: 42, color: '#C9A66B' },
-  { label: 'ETFs', pct: 27, color: '#5B6B8C' },
-  { label: 'Bonds', pct: 12, color: '#7280C7' },
-  { label: 'Crypto', pct: 10, color: '#8A6D3B' },
-  { label: 'Cash', pct: 9, color: '#E8DCC8' },
-];
-
-function mulberry(seed: number) {
-  let x = seed;
-  return () => {
-    x |= 0; x = (x + 0x6D2B79F5) | 0;
-    let t = Math.imul(x ^ (x >>> 15), 1 | x);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function genWalk(seed: number, n: number, start: number, end: number, wobble: number): number[] {
-  const rnd = mulberry(seed);
-  const out: number[] = [];
-  let v = start;
-  for (let i = 0; i < n; i += 1) {
-    const drift = (end - start) / (n - 1);
-    v += drift + (rnd() - 0.485) * wobble * (end - start);
-    out.push(v);
-  }
-  out[0] = start;
-  out[n - 1] = end;
-  return out;
-}
-
-function smoothPath(pts: { x: number; y: number }[]): string {
-  if (pts.length < 2) return '';
-  let d = `M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-  for (let i = 0; i < pts.length - 1; i += 1) {
-    const p0 = pts[Math.max(0, i - 1)];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[Math.min(pts.length - 1, i + 2)];
-    const c1x = p1.x + (p2.x - p0.x) / 6;
-    const c1y = p1.y + (p2.y - p0.y) / 6;
-    const c2x = p2.x - (p3.x - p1.x) / 6;
-    const c2y = p2.y - (p3.y - p1.y) / 6;
-    d += ` C${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
-  }
-  return d;
-}
-
-const fmtMoney0 = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-const fmtMoney2 = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-
-function ProductPreview() {
-  const [tf, setTf] = useState<PreviewTF>('1M');
-  const [hover, setHover] = useState<number | null>(null);
-  const [tick, setTick] = useState(0);
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const id = window.setInterval(() => setTick(t => t + 1), 3200);
-    return () => window.clearInterval(id);
-  }, []);
-
-  const cfg = PREVIEW_SERIES[tf];
-  const N = 28;
-  const series = useMemo(() => genWalk(cfg.seed, N, cfg.start, cfg.end, 0.055), [cfg.seed, cfg.start, cfg.end]);
-  const bench = useMemo(() => genWalk(cfg.seed + 999, N, cfg.start, cfg.benchEnd, 0.05), [cfg.seed, cfg.start, cfg.benchEnd]);
-
-  const W = 520; const H = 148; const PL = 6; const PR = 6; const PT = 10; const PB = 22;
-  const all = [...series, ...bench];
-  const min = Math.min(...all); const max = Math.max(...all);
-  const span = max - min || 1;
-  const X = (i: number) => PL + (i / (N - 1)) * (W - PL - PR);
-  const Y = (v: number) => PT + (1 - (v - min) / span) * (H - PT - PB);
-  const pts = series.map((v, i) => ({ x: X(i), y: Y(v) }));
-  const benchPts = bench.map((v, i) => ({ x: X(i), y: Y(v) }));
-  const line = smoothPath(pts);
-  const area = `${line} L${X(N - 1).toFixed(1)} ${H} L${X(0).toFixed(1)} ${H} Z`;
-  const benchLine = smoothPath(benchPts);
-
-  const change = cfg.end - cfg.start;
-  const changePct = (change / cfg.start) * 100;
-  const liveBump = (tick % 2 === 0 ? 1 : -1) * (cfg.end * 0.0004);
-  const liveValue = cfg.end + liveBump;
-
-  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const rect = wrapRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    setHover(Math.round(ratio * (N - 1)));
-  };
-
-  return (
-    <div className="login-preview showcase" aria-label="Interactive portfolio preview">
-      <div className="showcase-topbar">
-        <span className="showcase-live"><i /> NYSE · Open</span>
-        <span className="showcase-benchmark">S&P 500 <b>6,142.80</b> <em>+0.62%</em></span>
-      </div>
-
-      <div className="showcase-balance">
-        <div>
-          <span>Total net worth</span>
-          <strong key={tf + tick}>{fmtMoney2(liveValue)}</strong>
-        </div>
-        <div className="showcase-deltas">
-          <span className="showcase-pill is-up">▲ {fmtMoney0(change)} ({changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%)</span>
-          <span className="showcase-range">{tf} · vs S&P 500</span>
-        </div>
-      </div>
-
-      <div className="showcase-tabs" role="tablist" aria-label="Preview timeframe">
-        {(Object.keys(PREVIEW_SERIES) as PreviewTF[]).map(k => (
-          <button key={k} type="button" role="tab" aria-selected={tf === k} className={tf === k ? 'is-active' : ''} onClick={() => { setTf(k); setHover(null); }}>
-            {k}
-          </button>
-        ))}
-        <span className="showcase-updated">Updated just now</span>
-      </div>
-
-      <div className="showcase-chart" ref={wrapRef} onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
-        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Sample portfolio trend over ${tf}`}>
-          <defs>
-            <linearGradient id="showcase-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#C9A66B" stopOpacity=".30" />
-              <stop offset="100%" stopColor="#C9A66B" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {[36, 76, 116].map(y => (
-            <line key={y} x1="0" x2={W} y1={y} y2={y} stroke="#232C42" strokeWidth="1" />
-          ))}
-          <path d={area} fill="url(#showcase-fill)" />
-          <path d={benchLine} fill="none" stroke="#5B6B8C" strokeWidth="1.5" strokeDasharray="5 5" opacity=".85" />
-          <path key={tf} className="showcase-line-draw" d={line} fill="none" stroke="#C9A66B" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-          {hover === null ? (
-            <g className="showcase-live-dot">
-              <circle cx={X(N - 1)} cy={Y(series[N - 1])} r="9" fill="#C9A66B" opacity=".18" />
-              <circle cx={X(N - 1)} cy={Y(series[N - 1])} r="4" fill="#C9A66B" stroke="#07090F" strokeWidth="1.5" />
-            </g>
-          ) : (
-            <g>
-              <line x1={X(hover)} x2={X(hover)} y1={PT - 4} y2={H - PB + 4} stroke="#8E99B2" strokeWidth="1" strokeDasharray="3 4" />
-              <circle cx={X(hover)} cy={Y(series[hover])} r="4.5" fill="#0E131C" stroke="#C9A66B" strokeWidth="2" />
-            </g>
-          )}
-        </svg>
-        {hover !== null ? (
-          <div className="showcase-tip" style={{ left: `${(hover / (N - 1)) * 100}%` }}>
-            <strong>{fmtMoney0(series[hover])}</strong>
-            <span>{cfg.labels[Math.min(cfg.labels.length - 1, Math.floor((hover / (N - 1)) * cfg.labels.length))]}</span>
-          </div>
-        ) : null}
-        <div className="showcase-xlabels" aria-hidden="true">
-          {cfg.labels.map(l => <span key={l}>{l}</span>)}
-        </div>
-      </div>
-
-      <div className="showcase-stats">
-        <div><span>Invested</span><strong>$118.2K</strong></div>
-        <div><span>Cash sweep</span><strong>4.65% <small>APY</small></strong></div>
-        <div><span>Dividends YTD</span><strong className="is-gold">+$842.16</strong></div>
-      </div>
-
-      <ul className="showcase-holdings">
-        {PREVIEW_HOLDINGS.map((h, idx) => {
-          const ptsSpark = h.spark.map((v, i) => `${(i / (h.spark.length - 1)) * 76},${34 - ((v - 22) / 24) * 28}`).join(' ');
-          return (
-            <li key={h.symbol} style={{ animationDelay: `${idx * 70}ms` }}>
-              <span className={`login-asset-mark ${h.tone}`}>{h.symbol.slice(0, 4)}</span>
-              <span className="showcase-holding-meta"><strong>{h.symbol}</strong><small>{h.name}</small></span>
-              <svg className="showcase-spark" viewBox="0 0 76 36" aria-hidden="true">
-                <polyline points={ptsSpark} fill="none" stroke={h.up ? '#C9A66B' : '#8E99B2'} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
-              </svg>
-              <span className="showcase-holding-right"><b>{h.value}</b><em className={h.up ? 'is-up' : 'is-down'}>{h.change}</em></span>
-            </li>
-          );
-        })}
-      </ul>
-
-      <div className="showcase-alloc" aria-label="Sample allocation">
-        <div className="showcase-alloc-bar">
-          {PREVIEW_ALLOC.map(a => (
-            <span key={a.label} style={{ width: `${a.pct}%`, background: a.color }} title={`${a.label} ${a.pct}%`} />
-          ))}
-        </div>
-        <div className="showcase-alloc-legend">
-          {PREVIEW_ALLOC.map(a => (
-            <span key={a.label}><i style={{ background: a.color }} />{a.label} <b>{a.pct}%</b></span>
-          ))}
-        </div>
-      </div>
-
-      <div className="showcase-activity">
-        <span><i className="dot" /> Auto-invest $250 → VTI · executed</span>
-        <span><i className="dot gold" /> Dividend +$42.18 · SCHD reinvested</span>
-      </div>
     </div>
   );
 }
@@ -548,28 +334,14 @@ export default function LoginPage({ account, onAccount, onBack, onComplete, onGo
 
   return (
     <div className="login-shell">
-      <aside className="login-panel">
+      <aside className="login-panel editorial-panel">
+        <img className="login-editorial-photo" src="/assets/new-york-flatiron.jpg" alt="New York’s Flatiron Building, looking upward" />
         <header className="login-panel-top">
-          <button type="button" className="login-brand" onClick={onBack} aria-label="Back to Invemon website">
-            <img src="/assets/Logo-brand-dark.png" alt="Invemon" width="132" />
-          </button>
-          <button type="button" className="login-website-link" onClick={onBack}>
-            <Icon name="arrowLeft" size={15} /> Website
-          </button>
+          <button type="button" className="login-brand" onClick={onBack} aria-label="Back to Invemon website"><Wordmark light /></button>
+          <button type="button" className="login-website-link" onClick={onBack}><Icon name="arrowLeft" size={15} /> Back to website</button>
         </header>
-
-        <div className="login-panel-copy">
-          <p><i className="login-kicker-dot" /> Private client access</p>
-          <h2>Private wealth,<br /><em>quietly compounded.</em></h2>
-          <span>A live look at the calm, confident portfolio workspace waiting behind this sign-in.</span>
-        </div>
-
-        <ProductPreview />
-
-        <footer className="login-panel-footer">
-          <span><Icon name="lock" size={14} /> 256-bit encrypted session</span>
-          <span><Icon name="shield" size={14} /> SIPC-protected brokerage</span>
-        </footer>
+        <div className="login-editorial-copy"><span className="login-editorial-kicker">A LONGER-TERM PERSPECTIVE</span><h2>Great things <br />are built <br /><em>over time.</em></h2><p>A place for your investments.<br />A world of possibility ahead.</p></div>
+        <footer className="login-editorial-footer"><span>NEW YORK, UNITED STATES</span><span>01 / A WORLD OF OPPORTUNITY</span></footer>
       </aside>
 
       <main className="login-main">
@@ -732,7 +504,7 @@ export default function LoginPage({ account, onAccount, onBack, onComplete, onGo
             <section className="login-section" aria-labelledby="login-title">
               <p className="login-welcome">Welcome back</p>
               <h1 id="login-title">Sign in to Invemon</h1>
-              <p className="login-lede">Access your portfolio, cash sweep and automatic investments.</p>
+              <p className="login-lede">A clear view of your investments. A fresh perspective on what’s next.</p>
 
               {error && (
                 <div className="login-alert is-error" role="alert">
@@ -820,7 +592,7 @@ export default function LoginPage({ account, onAccount, onBack, onComplete, onGo
                 </label>
 
                 <button type="submit" className="login-primary">
-                  Sign In to Wealth Portal <Icon name="arrow" size={17} />
+                  Log in <Icon name="arrow" size={17} />
                 </button>
               </form>
 
@@ -834,17 +606,15 @@ export default function LoginPage({ account, onAccount, onBack, onComplete, onGo
               </div>
 
               <p className="login-security-note">
-                <Icon name="lock" size={14} /> Protected by encrypted sessions and optional two-step verification.
+                <Icon name="lock" size={14} /> Product preview. Use demo details, not a password you use elsewhere.
               </p>
             </section>
           )}
         </div>
 
         <footer className="login-legal">
-          <span>© 2025 Invemon</span>
-          <span>Privacy</span>
-          <span>Terms</span>
-          <span>Security</span>
+          <span>© 2026 Invemon</span>
+          <span>Demo environment · No real-money investing</span>
         </footer>
       </main>
 

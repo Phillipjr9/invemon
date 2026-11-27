@@ -1,0 +1,13 @@
+We received your Invemon support request
+
+Hello Alex Morgan, your support request was saved. Keep the reference below for your records.
+
+Time: 2026-11-27 12:30:00 UTC
+Reference: SAMPLE-7E2A
+
+This confirms receipt, not resolution. Response times are not guaranteed. Do not send bank details, identity documents, passwords, or wallet secrets. This is not an emergency support channel.
+
+Open your account: https://invemon.example/#dashboard
+
+Manage optional emails in Settings → Email notifications.
+Invemon is an investment simulation. No real funds move.

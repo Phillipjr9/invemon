@@ -1,0 +1,37 @@
+/* Global appearance control stays separate from the generated page palettes. */
+:root { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; background:#141f1a; color:#dce7d6; }
+.theme-toggle { position:fixed; right:22px; bottom:22px; z-index:90; display:flex; align-items:center; justify-content:center; gap:9px; min-height:42px; padding:10px 15px; border:1px solid #ced9c7; border-radius:999px; background:#f7f8f2; color:#194637; box-shadow:0 4px 20px #13291c15; font:500 11px 'DM Sans',sans-serif; }
+.theme-toggle:hover { background:#e8eddf; }
+.theme-toggle:focus-visible { outline:2px solid #af794c; outline-offset:4px; }
+:root[data-theme="dark"] .theme-toggle { background:#24382c; color:#dce7d6; border-color:#4a6550; box-shadow:0 4px 20px #0003; }
+:root[data-theme="dark"] .theme-toggle:hover { background:#304735; }
+/* Text over photographs remains light; photographs themselves are never inverted. */
+:root[data-theme="dark"] .editorial-panel .login-editorial-copy h2,
+:root[data-theme="dark"] .editorial-panel .login-editorial-copy p,
+:root[data-theme="dark"] .editorial-panel .login-editorial-kicker,
+:root[data-theme="dark"] .editorial-panel .login-website-link,
+:root[data-theme="dark"] .iv-wordmark-light { color:#f0f3e8; }
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea { color-scheme:dark; }
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder { color:#91a38e; opacity:1; }
+:root[data-theme="dark"] ::selection { background:#acc99b; color:#14251b; }
+@media(max-width:760px) { .theme-toggle { right:14px; bottom:calc(82px + env(safe-area-inset-bottom)); min-height:40px; padding:9px 12px; } }
+@media print { .theme-toggle { display:none; } }
+/* Inline SVG chart colors need their own contrast treatment. */
+:root[data-theme="dark"] .db-chart-plot path[stroke="#2b624a"] { stroke:#8cbd9c; }
+:root[data-theme="dark"] .db-chart-plot circle[fill="#2b624a"] { fill:#8cbd9c; }
+:root[data-theme="dark"] .db-chart-plot line[stroke="#edf0e7"] { stroke:#33483a; }
+:root[data-theme="dark"] #db-area-fill stop { stop-color:#8cbd9c; }
+:root[data-theme="dark"] .db-chart-legend>span:first-child i { background:#8cbd9c !important; }
+.account-service-notice { padding:12px 22px; background:#f5ebd5; color:#5e4325; font:13px 'DM Sans',sans-serif; }
+.account-service-notice button { text-decoration:underline; margin-left:10px; }
+:root[data-theme="dark"] .account-service-notice { background:#3c3222; color:#e4c798; }
+.login-field select { width:100%; min-height:46px; padding:12px; border:1px solid #d9dfcf; border-radius:3px; background:transparent; color:inherit; }
+:root[data-theme="dark"] .login-field select { border-color:#364a3c; background:#18241e; }
+.server-auth .login-preview-note { display:block; margin:18px 0; padding:12px 0; font-size:11px; line-height:1.7; background:transparent; color:#6a7e5d; }
+.server-auth .login-back { display:flex; margin-top:16px; padding:5px 0; font-size:12px; text-align:left; text-decoration:underline; text-underline-offset:4px; }
+.server-auth .login-remember { align-items:flex-start; line-height:1.6; }
+:root[data-theme="dark"] .server-auth .login-preview-note { color:#a3b79e; }

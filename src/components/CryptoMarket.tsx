@@ -1,3 +1,5 @@
+import MarketChart from './MarketChart';
+import AssetLogo from './AssetLogo';
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from './Icon';
@@ -35,14 +37,7 @@ function errorMessage(error: unknown, fallback: string): string {
 }
 
 function CoinIcon({ asset, large = false }: { asset: CryptoAsset; large?: boolean }) {
-  const [failed, setFailed] = useState(false);
-  return (
-    <span className={`crypto-coin-icon ${large ? 'is-large' : ''}`} aria-hidden="true">
-      {!failed ? (
-        <img src={`https://static.coinpaprika.com/coin/${encodeURIComponent(asset.id)}/logo.png`} alt="" loading="lazy" onError={() => setFailed(true)} />
-      ) : <span>{asset.symbol.slice(0, 2).toUpperCase() || '?'}</span>}
-    </span>
-  );
+  return <AssetLogo symbol={asset.symbol} coinId={asset.id} size={large ? 56 : 36} />;
 }
 
 function Change({ value }: { value: number | null }) {
@@ -163,7 +158,7 @@ function CryptoDetail({ asset, quote, favorite, onToggle, onClose, onQuote }: {
         {!asset.active && <p className="crypto-inline-error">This asset is marked inactive by the data provider. Current prices may not be available.</p>}
         <div className="crypto-detail-chart-head"><h3>Price history</h3><div className="crypto-periods" aria-label="Price history period">{PERIODS.map(item => <button key={item} className={period === item ? 'is-active' : ''} aria-pressed={period === item} onClick={() => setPeriod(item)}>{item}</button>)}</div></div>
         {historyLoading ? <div className="crypto-chart-placeholder"><span className="crypto-spinner" /> Loading price history</div> : historyError ? <div className="crypto-chart-placeholder"><span>{historyError}</span><button onClick={() => setHistoryRetry(value => value + 1)}>Retry</button></div> : history.length ? <HistoryChart key={`${asset.id}-${period}`} data={history} period={period} /> : <div className="crypto-chart-placeholder">No price history is available for this asset.</div>}
-        <div className="crypto-metrics"><div><span>Market cap</span><strong>{formatCryptoCompact(quote?.marketCap ?? null)}</strong></div><div><span>24h volume</span><strong>{formatCryptoCompact(quote?.volume24h ?? null)}</strong></div><div><span>7d change</span><strong><Change value={quote?.change7d ?? null} /></strong></div><div><span>All-time high</span><strong>{formatCryptoPrice(quote?.athPrice ?? null)}</strong></div></div>
+        <MarketChart key={asset.id} symbol={asset.symbol} coinId={asset.id} /><div className="crypto-metrics"><div><span>Market cap</span><strong>{formatCryptoCompact(quote?.marketCap ?? null)}</strong></div><div><span>24h volume</span><strong>{formatCryptoCompact(quote?.volume24h ?? null)}</strong></div><div><span>7d change</span><strong><Change value={quote?.change7d ?? null} /></strong></div><div><span>All-time high</span><strong>{formatCryptoPrice(quote?.athPrice ?? null)}</strong></div></div>
         <div className="crypto-detail-actions"><button className={`crypto-primary ${favorite ? 'is-saved' : ''}`} onClick={onToggle}><Icon name="star" size={16} /> {favorite ? 'Remove from watchlist' : 'Add to watchlist'}</button><a href={`https://coinpaprika.com/coin/${encodeURIComponent(asset.id)}/`} target="_blank" rel="noreferrer">View on CoinPaprika <Icon name="external" size={15} /></a></div>
         <p className="crypto-detail-disclaimer">{updatedText ? `Price last updated ${updatedText}. ` : ''}Data by CoinPaprika; prices may be delayed. Listing does not mean an asset is available to trade. The portfolio and orders on this site are simulated.</p>
       </div>
