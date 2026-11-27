@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run emails:preview && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate-neon.mjs",
     "test:api": "node --experimental-test-module-mocks --test tests/api.test.mjs",

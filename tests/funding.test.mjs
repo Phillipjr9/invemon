@@ -25,7 +25,7 @@ async function call(handler,{method='POST',data,cookie,origin='https://invemon.e
  return {status,value,headers,cookie:headers['set-cookie']?.split(';')[0]};
 }
 const {createHmac}=await import('node:crypto');
-const {usdAmount,canonical,verifyIpn,providerInvoiceUrl}=await import('../server/funding.mjs');
+const {usdAmount,canonical,verifyIpn,providerInvoiceUrl,createSandboxInvoice}=await import('../server/funding.mjs');
 let owner,other,uid;
 const password='a long secure test password!';
 test('decimal input, sandbox host allowlist, and recursive callback signature validation',()=>{
@@ -43,13 +43,13 @@ test('funding requires owner session; sandbox disabled by default, sign-in still
  assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'create-invoice',amount:'10'}})).status,503);
  assert.equal((await call(funding,{method:'GET',cookie:owner.cookie})).value.liveEnabled,false);
 });
-test('unverified non-MFA user can create sandbox invoice; binds stored owner/amount and fixed API host; no balance credit',async()=>{
+test('legacy sandbox fixture stays isolated from production customer records',async()=>{
  process.env.NOWPAYMENTS_SANDBOX_ENABLED='true';process.env.NOWPAYMENTS_SANDBOX_API_KEY='test';process.env.NOWPAYMENTS_SANDBOX_IPN_SECRET='test-ipn-secret';
  const original=globalThis.fetch;
  globalThis.fetch=async(url,options)=>{assert.equal(url,'https://api-sandbox.nowpayments.io/v1/invoice');const value=JSON.parse(options.body);assert.equal(value.price_amount,12.34);assert.equal(value.ipn_callback_url,'https://invemon.example/api/funding-ipn');return new Response(JSON.stringify({id:'123',invoice_url:'https://sandbox.nowpayments.io/payment/?iid=123'}));};
- try{const result=await call(funding,{cookie:owner.cookie,data:{action:'create-invoice',amount:'12.34',user_id:other.value.account.serverUserId}});assert.equal(result.status,201);assert.equal(result.value.credited,false);}
+ try{const result=await createSandboxInvoice({id:uid},'12.34');assert.equal(result.credited,false);}
  finally{globalThis.fetch=original;}
- assert.equal((await call(funding,{method:'GET',cookie:owner.cookie})).value.requests.length,1);
+ assert.equal((await call(funding,{method:'GET',cookie:owner.cookie})).value.requests.length,0);
  assert.equal((await call(funding,{method:'GET',cookie:other.cookie})).value.requests.length,0);
 });
 test('forged, unmatched and replayed callbacks cannot credit balances; events deduplicate',async()=>{
@@ -75,12 +75,22 @@ test('bank drafts require independent allowlist MFA and password; stale revision
  assert.equal((await pg.query('SELECT * FROM bank_instruction_versions')).rows.length,1);
 });
 
-test('provider rejection reports safe status and never exposes provider response or credentials',async()=>{
+test('production credentials never enable a customer invoice or expose a key by themselves',async()=>{
+ process.env.NOWPAYMENTS_API_KEY='production-test-key';process.env.NOWPAYMENTS_IPN_SECRET='production-test-secret';
+ const result=await call(funding,{cookie:owner.cookie,data:{action:'create-invoice',amount:'10'}});
+ assert.equal(result.status,503);
+ const status=await call(funding,{method:'GET',cookie:owner.cookie});
+ assert.equal(status.value.configured,true);assert.equal(status.value.liveEnabled,false);assert.equal(status.value.environment,'production');assert.deepEqual(status.value.requests,[]);
+ assert.equal(JSON.stringify(status.value).includes('production-test-key'),false);
+});
+const {readProductionPayment}=await import('../server/nowpayments-production.mjs');
+test('production payment lookup uses fixed authenticated host, rejects identity mismatch and never credits',async()=>{
  const original=globalThis.fetch;
- globalThis.fetch=async()=>new Response(JSON.stringify({message:'sensitive recipient credentials'}),{status:403});
  try{
-  const result=await call(funding,{ip:'safe-errors',cookie:owner.cookie,data:{action:'create-invoice',amount:'10'}});
-  assert.equal(result.status,502);assert.match(result.value.error,/HTTP 403/);
-  assert.equal(JSON.stringify(result.value).includes('sensitive recipient'),false);
+  globalThis.fetch=async(url,options)=>{assert.equal(url,'https://api.nowpayments.io/v1/payment/123');assert.equal(options.headers['x-api-key'],'production-test-key');return new Response(JSON.stringify({payment_id:123,payment_status:'finished'}));};
+  assert.equal((await readProductionPayment('123')).payment_status,'finished');
+  await assert.rejects(()=>readProductionPayment('../payout'),/Invalid/);
+  globalThis.fetch=async()=>new Response(JSON.stringify({payment_id:999}));await assert.rejects(()=>readProductionPayment('123'),/mismatch/);
+  globalThis.fetch=async()=>new Response('secret response',{status:403});await assert.rejects(()=>readProductionPayment('123'),/HTTP 403/);
  }finally{globalThis.fetch=original;}
 });

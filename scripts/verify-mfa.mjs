@@ -10,7 +10,7 @@ try{
  await page.goto(`${process.env.SERVER_TEST_BASE_URL||'http://localhost:5187'}/#login`);
  await page.getByLabel('Email address',{exact:true}).fill(account.email);await page.getByLabel('Password',{exact:true}).fill('long test password!');await page.getByRole('button',{name:'Log in',exact:true}).click();
  await page.getByLabel('Authenticator or recovery code').fill('123456');assert.equal(signed,false);
- await page.getByRole('button',{name:'Log in',exact:true}).click();await page.locator('.db-overview-stage').waitFor();
+ await page.getByRole('button',{name:'Log in',exact:true}).click();await page.getByRole('heading',{name:'No recorded holdings'}).waitFor();
  await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByText('Authenticator & recovery codes',{exact:true}).click();
  await page.getByLabel('Confirm password',{exact:true}).fill('long test password!');await page.getByRole('button',{name:'Set up authenticator',exact:true}).click();
  await page.getByAltText('Authenticator enrollment QR code containing your private setup key').waitFor();

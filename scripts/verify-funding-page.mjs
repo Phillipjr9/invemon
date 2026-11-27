@@ -12,19 +12,19 @@ try{
  await page.route('**/api/workspace',r=>r.fulfill({json:{workspace:null}}));
  await page.route('**/api/mfa',r=>r.fulfill({json:{configured:false,enabled:false,recoveryCodesRemaining:0}}));
  await page.route('**/api/notifications',r=>r.fulfill({json:{configured:false,history:[],preferences:{}}}));
- await page.route('**/api/funding',r=>r.fulfill({json:{configured:true,environment:'sandbox',liveEnabled:false,requests:[{id:'test-reference',environment:'sandbox',amount_usd:'10.00',status:'needs_review',created_at:'2026-11-27T12:00:00Z'}]}}));
+ await page.route('**/api/funding',r=>r.fulfill({json:{configured:true,environment:'production',liveEnabled:false,requests:[]}}));
  await page.goto(`${base}/#funding`);await page.getByRole('heading',{name:'Sign in to view your funding requests'}).waitFor();
  assert.equal(await page.getByRole('button',{name:'Open sandbox checkout'}).count(),0);
- signed=true;await page.reload();await page.getByText('Requires reconciliation',{exact:true}).waitFor();
+ signed=true;await page.reload();await page.getByText('No production funding requests recorded. No balance is inferred from browser storage.',{exact:true}).waitFor();
  assert.equal(await page.getByRole('button',{name:'Live deposits unavailable'}).isDisabled(),true);
- await page.getByText('Developer testing · sandbox only',{exact:true}).click();await page.getByLabel('Test amount (USD)').fill('12.00');
+ assert.equal(await page.getByRole('button',{name:'Open sandbox checkout'}).count(),0);
  for(const width of [1440,390,320]){await page.setViewportSize({width,height:1050});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}
  await page.setViewportSize({width:1440,height:1050});await page.screenshot({path:'.playwright/funding-page.png',fullPage:true});
  await page.goto(`${base}/#dashboard`);await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('heading',{name:'Account & security'}).waitFor();
  assert.equal(await page.getByText('Funding setup · sandbox only',{exact:true}).count(),0);
  assert.equal(await page.getByRole('button',{name:'Open sandbox checkout'}).count(),0);
  // Header deposit action now navigates to dedicated page, never the simulated receipt.
- const deposit=page.getByRole('button',{name:/Deposit/}).first();await deposit.click();
+ const deposit=page.getByRole('link',{name:/Deposit/}).first();await deposit.click();
  await page.waitForURL('**/#funding');assert.equal(await page.getByText('SAMPLE TRANSACTION COMPLETE',{exact:true}).count(),0);
  assert.deepEqual(errors,[]);console.log('PASS: funding auth UI, held-payment history, live disabled, isolated Settings, dedicated deposit navigation, 320–1440px layout. HTTP mocked.');
 }finally{await browser.close();}

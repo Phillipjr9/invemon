@@ -10,10 +10,10 @@ export default function ServerAccountTools({ account, onAccount, onSignedOut }: 
  async function run(work: () => Promise<void>) { if (busy) return; setBusy(true); setError(''); setNotice(''); try { await work(); } catch (err) { setError(err instanceof Error ? err.message : 'Request failed.'); } finally { setBusy(false); } }
  function submit(event: FormEvent<HTMLFormElement>, action: string) {
   event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget));
-  if (action === 'delete' && !window.confirm('Permanently delete your account, cloud simulation data, sessions, and support requests? This cannot be undone.')) return;
+  if (action === 'delete' && !window.confirm('Permanently delete eligible account data, sessions, and support requests? Records subject to retention may prevent deletion. This cannot be undone.')) return;
   void run(async () => {
    const result = await accountAction(action, data);
-   if (action === 'profile' && result.account) { onAccount(result.account); setNotice('Profile saved. Your allocation policy now follows this risk profile.'); }
+   if (action === 'profile' && result.account) { onAccount(result.account); setNotice('Profile saved. This does not place orders or change an investment allocation.'); }
    if (action === 'password' || action === 'delete') {
     if (action === 'delete') { try { localStorage.removeItem(`invemon-dashboard:${account.email}`); localStorage.removeItem(`invemon-crypto-watchlist:${account.email.toLowerCase()}`); } catch { /* Cloud data is already deleted. */ } }
     onAccount(null); onSignedOut();
@@ -41,14 +41,14 @@ export default function ServerAccountTools({ account, onAccount, onSignedOut }: 
    </form></details>
    <div className="db-btn-row" style={{ marginTop: 20 }}>
     <button type="button" className="db-btn" onClick={() => void run(async () => { await accountAction('logout-all'); onAccount(null); onSignedOut(); })}>Sign out all devices</button>
-    <button type="button" className="db-btn" onClick={() => void run(async () => { const data = await accountAction('export'); downloadJson('invemon-account-export.json', data); setNotice('Account export downloaded. Simulation only—not a tax statement.'); })}>Export account data</button>
+    <button type="button" className="db-btn" onClick={() => void run(async () => { const data = await accountAction('export'); downloadJson('invemon-account-export.json', data); setNotice('Account export downloaded. This is not a financial or tax statement.'); })}>Export account data</button>
    </div>
    <div style={{ marginTop: 20 }}><a className="db-btn" href="#support">View support requests &amp; replies</a></div>
    <details style={{ marginTop: 20 }}><summary>Contact support</summary><form className="dialog-form" onSubmit={event => submit(event, 'support')}>
     <label className="db-field">Subject<input name="subject" required minLength={3} maxLength={120} /></label><label className="db-field">Message<textarea name="message" required minLength={10} maxLength={4000} /></label><button type="submit" className="db-btn">Submit support request</button>
    </form></details>
    <details style={{ marginTop: 20 }}><summary>Delete account permanently</summary><form className="dialog-form" onSubmit={event => submit(event, 'delete')}>
-    <label className="db-field">Confirm current password<input name="currentPassword" type="password" required maxLength={128} autoComplete="current-password" /></label><button type="submit" className="db-btn">Delete my account and cloud data</button>
+    <label className="db-field">Confirm current password<input name="currentPassword" type="password" required maxLength={128} autoComplete="current-password" /></label><button type="submit" className="db-btn">Delete eligible account data</button>
    </form></details>
   </fieldset>
  </section>;
