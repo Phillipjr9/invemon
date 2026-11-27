@@ -58,3 +58,7 @@ Restored layouts additionally verified with four metric/three content panel asse
 ## Customer withdrawals follow-up
 
 `#withdrawals` now contains encrypted saved ACH/wire/crypto destinations, default-disabled request submission with exact fund holds, eligible cancellation and owner-only review-status history. Accessible from dashboard footer, Activity and Deposit. Admin queue links destination metadata through immutable request records. Requires migration 010 and private encryption configuration; no hosted rollout or enablement occurred. This supersedes the earlier missing-customer-request entry. Full payment execution/completion, destination verification, operator reveal, notifications and unified activity feed remain incomplete. See CUSTOMER_WITHDRAWALS.md.
+
+## Server-backed Goals follow-up
+
+Goals is no longer only a restored layout. `#dashboard?section=goals` now supports owner-scoped server create/edit/archive/restore of USD targets, intended monthly amounts and target dates, with optimistic revisions, exact cents and append-only event metadata. Confirmed savings/progress/contributions remain unavailable; plans do not move/reserve funds. This supersedes earlier missing-goal-storage entries. Migration 011 required; no hosted rollout performed. See CUSTOMER_GOALS.md.

@@ -89,7 +89,7 @@ try{
  balanceFails=true;await page.reload();await page.getByText('Balance unavailable. Please reload to retry.',{exact:true}).waitFor();assert.equal(await page.getByText('$0.00',{exact:true}).count(),0);balanceFails=false;await page.getByRole('button',{name:'Retry balance'}).click();await page.getByRole('region',{name:'Available cash'}).getByText('$0.00',{exact:true}).waitFor();
 
  // Audit every remaining workspace section through navigation and reload.
- for(const [id,label,heading] of [['yield','Yield & Income','Your income, in view'],['autoinvest','Auto-invest','Build a lasting habit'],['goals','Goals','Make room for what matters'],['insights','Insights','The bigger picture']]){
+ for(const [id,label,heading] of [['yield','Yield & Income','Your income, in view'],['autoinvest','Auto-invest','Build a lasting habit'],['insights','Insights','The bigger picture']]){
   await sidebar.getByRole('button',{name:label,exact:true}).click();await page.getByRole('heading',{name:heading,exact:true}).waitFor();
   assert.equal(await page.locator('.planning-metrics .db-card').count(),4);assert.equal(await page.locator('.planning-panels .planning-panel').count(),3);
   if(id==='yield'){await page.getByRole('button',{name:'3M',exact:true}).click();await page.getByText('Income history · 3M',{exact:true}).waitFor();}

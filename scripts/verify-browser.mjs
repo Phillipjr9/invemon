@@ -18,5 +18,5 @@ async function run(file,env){
 }
 try{
  const serverBase=await serve(5187,'server');
- for(const file of ['verify-customer-accounts.mjs','verify-account-links-ui.mjs','verify-support.mjs','verify-mfa.mjs','verify-funding-page.mjs','verify-admin.mjs','verify-withdrawals.mjs'])await run(file,{SERVER_TEST_BASE_URL:serverBase});
+ for(const file of ['verify-customer-accounts.mjs','verify-account-links-ui.mjs','verify-support.mjs','verify-mfa.mjs','verify-funding-page.mjs','verify-admin.mjs','verify-withdrawals.mjs','verify-goals.mjs'])await run(file,{SERVER_TEST_BASE_URL:serverBase});
 }finally{controller.abort();for(const server of servers)server.kill('SIGTERM');}
