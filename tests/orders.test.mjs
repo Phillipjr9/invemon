@@ -94,3 +94,35 @@ test('dispatch records are append-only and public endpoints cannot dispatch or f
  for(const action of ['dispatch','acknowledge','reconcile'])assert.equal((await call({action})).status,400);
  assert.equal((await pg.query('SELECT count(*) FROM ledger_journals')).rows[0].count,1);
 });
+const {runOrderWorker}=await import('../server/order-worker.mjs');
+const {default:workerHandler}=await import('../server/routes/order-worker.mjs');
+test('worker is disabled with empty registry and enforces bounded batches',async()=>{
+ assert.deepEqual(await runOrderWorker(),{enabled:false,processed:0,results:[]});
+ for(const limit of [0,11,-1,1.5])await assert.rejects(runOrderWorker({limit}),/Invalid/);
+ await assert.rejects(runOrderWorker({mode:'fill'}),/Invalid/);
+});
+test('dispatch worker uses only registered provider adapters and cannot submit twice',async()=>{
+ const id=await accept(await quote({units:'100',fee:'1'}));let submits=0;
+ const adapters={'test-only':{name:'test-only',submit:async input=>{submits++;return {providerOrderRef:`worker-ack-${input.id}`};}}};
+ const result=await runOrderWorker({mode:'dispatch',limit:1,adapters});assert.equal(result.processed,1);assert.equal(result.results[0].id,id);assert.equal(result.results[0].state,'submitted');
+ await runOrderWorker({mode:'dispatch',limit:1,adapters});assert.equal(submits,1);
+});
+test('reconciliation worker performs lookup without resubmit and keeps unresolved holds',async()=>{
+ const id=await accept(await quote({units:'100',fee:'1'}));await pg.query("INSERT INTO execution_dispatches(order_id,provider,execution_key,claimed_at) VALUES($1,'test-only',$1,now()-interval '1 minute')",[id]);
+ const before=await balance();let lookups=0;
+ const result=await runOrderWorker({mode:'reconcile',adapters:{'test-only':{name:'test-only',lookup:async()=>{lookups++;return null;},submit:()=>assert.fail('lookup must not submit')}}});
+ assert.ok(result.results.some(r=>r.id===id&&r.state==='unresolved'));assert.ok(lookups>0);assert.deepEqual(await balance(),before);
+});
+test('operations worker endpoint requires bearer auth and rejects request-configured adapters',async()=>{
+ process.env.OPS_SECRET='s'.repeat(40);
+ async function ops(data,authorization,method='POST'){let status=200,result;await workerHandler({method,body:data,headers:{authorization,'content-type':'application/json'}},{setHeader(){},status(n){status=n;return this;},json(v){result=v;return this;}});return{status,result};}
+ assert.equal((await ops({mode:'dispatch',limit:1})).status,401);assert.equal((await ops({},`Bearer ${process.env.OPS_SECRET}`,'GET')).status,405);
+ assert.equal((await ops({mode:'dispatch',limit:1,adapters:{evil:'https://evil.example'}},`Bearer ${process.env.OPS_SECRET}`)).status,400);
+ const result=await ops({mode:'reconcile',limit:1},`Bearer ${process.env.OPS_SECRET}`);assert.equal(result.status,200);assert.equal(result.result.enabled,false);
+});
+test('finance admin recovery queue is restricted and exposes states without private quote references',async()=>{
+ const {default:adminHandler}=await import('../server/routes/admin.mjs');
+ async function queue(){let status=200,result;await adminHandler({method:'GET',query:{view:'orders'},headers:{cookie:`__Host-invemon-session=${token}`}},{setHeader(){},status(n){status=n;return this;},json(v){result=v;return this;}});return{status,result};}
+ assert.equal((await queue()).status,403);process.env.FUNDING_ADMIN_IDS=user;
+ const response=await queue();assert.equal(response.status,200);assert.equal(response.result.manualFillEnabled,false);assert.ok(response.result.orders.some(o=>o.state==='dispatch_pending'));assert.equal(JSON.stringify(response.result).includes('provider_quote_ref'),false);assert.equal(JSON.stringify(response.result).includes('password_hash'),false);
+});

@@ -16,13 +16,14 @@ try{
    if(conflict)return r.fulfill({status:409,json:{error:'This request changed. Reload before reviewing.'}});
    revision++;decision=input.decision;return r.fulfill({json:{revision,payoutInitiated:false}});
   }
+  if(view==='orders')return r.fulfill({json:{orders:[{id:'execution-test',email:'customer@example.com',operation:'stock_buy',provider:'test-provider',source_asset:'USD:BANK',source_units:'2500',fee_units:'25',decimals:2,target_symbol:'TEST',state:'uncertain',funds_state:'held',created_at:'2026-11-27T10:00:00Z',claimed_at:null}]}});
   if(view==='history')return r.fulfill({json:{events:revision?[{id:'event',revision,actor_id:'staff-id',decision,note:'Reviewed test reservation',created_at:'2026-11-27T10:00:00Z'}]:[]}});
   if(view==='customers')return r.fulfill({json:{customers:[{id:customer,email:'customer@example.com',email_verified_at:'2026-11-27',created_at:'2026-11-27'}]}});
   if(view==='account')return r.fulfill({json:{customer:{id:customer,email:'customer@example.com',email_verified_at:'2026-11-27'},balances:[{asset:'USD:BANK',total_units:'10000',reserved_units:'2500',available_units:'7500',decimals:2}]}});
   return r.fulfill({json:{requests:[{id,user_id:customer,email:'customer@example.com',asset:'USD:BANK',units:'2500',decimals:2,state:decision==='rejected'?'released':'held',revision,decision,created_at:'2026-11-27T10:00:00Z'}],payoutsEnabled:false}});
  });
  await page.goto(`${process.env.SERVER_TEST_BASE_URL||'http://localhost:5187'}/#admin`);await page.getByRole('alert').waitFor();assert.equal(await page.getByRole('heading',{name:'Customer lookup'}).count(),0);
- allowed=true;await page.getByRole('button',{name:'Refresh admin workspace'}).click();await page.getByRole('heading',{name:'Withdrawal reviews'}).waitFor();
+ allowed=true;await page.getByRole('button',{name:'Refresh admin workspace'}).click();await page.getByRole('heading',{name:'Withdrawal reviews'}).waitFor();await page.getByRole('heading',{name:'Execution recovery',exact:true}).waitFor();await page.getByText('State: uncertain · Funds: held',{exact:true}).waitFor();
  await page.getByRole('button',{name:'Review 11111111'}).click();await page.getByText('No reviews recorded.',{exact:true}).waitFor();
  await page.getByLabel('Decision',{exact:true}).selectOption('approved');await page.getByLabel('Internal review note').fill('Reviewed test reservation');await page.getByLabel('Current password',{exact:true}).fill('test password');page.on('dialog',d=>d.accept());
  await page.getByRole('button',{name:'Record decision',exact:true}).click();await page.getByText('Review recorded. No payout was initiated.',{exact:true}).waitFor();assert.equal(posts,1);

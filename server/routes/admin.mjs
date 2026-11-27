@@ -8,6 +8,15 @@ export default async function handler(req,res){
   await rateLimit(req,`admin-${user.id}`,req.method==='GET'?120:20);const sql=db();
   if(req.method==='GET'){
    const view=req.query?.view||'queue';
+   if(view==='orders'){
+    const orders=await sql`SELECT o.id,o.created_at,u.email,q.operation,q.provider,q.source_asset,q.source_units::text,q.fee_units::text,a.decimals,q.target_symbol,
+     d.claimed_at,
+     CASE WHEN EXISTS(SELECT 1 FROM execution_order_events e WHERE e.order_id=o.id AND e.state='cancelled') THEN 'cancelled' WHEN EXISTS(SELECT 1 FROM execution_dispatch_events e WHERE e.order_id=o.id AND e.state='submitted') THEN 'submitted' WHEN EXISTS(SELECT 1 FROM execution_dispatch_events e WHERE e.order_id=o.id AND e.state='uncertain') THEN 'uncertain' WHEN d.order_id IS NOT NULL THEN 'dispatch_pending' WHEN q.expires_at<=now() THEN 'quote_expired' ELSE 'queued' END AS state,
+     r.state AS funds_state
+     FROM execution_orders o JOIN app_users u ON u.id=o.user_id JOIN execution_quotes q ON q.id=o.quote_id JOIN ledger_assets a ON a.code=q.source_asset JOIN fund_reservation_states r ON r.id=o.id LEFT JOIN execution_dispatches d ON d.order_id=o.id
+     ORDER BY o.created_at DESC,o.id DESC LIMIT 100`;
+    return res.status(200).json({orders,limit:100,manualFillEnabled:false});
+   }
    if(view==='customers'){
     const search=String(req.query?.search||'').trim();if(search.length<3||search.length>100)throw new HttpError(400,'Search using 3–100 characters of an email or account ID.');
     const customers=await sql`SELECT id,email,email_verified_at,created_at FROM app_users WHERE strpos(lower(email),lower(${search}))>0 OR id::text=${search} ORDER BY created_at DESC,id DESC LIMIT 30`;
