@@ -1,3 +1,5 @@
+import MarketChart from '../components/MarketChart';
+import AssetLogo from '../components/AssetLogo';
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactElement } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../components/Icon';
@@ -575,16 +577,9 @@ function AssetInspectorModal({
   onSell: () => void;
   onClose: () => void;
 }) {
-  const spark = useMemo(() => makeSpark(quote.price, quote.symbol.charCodeAt(0) * 31 + 9), [quote.price, quote.symbol]);
   const [alertPrice, setAlertPrice] = useState(String(existingAlert?.targetPrice ?? Math.round(quote.price * 1.05 * 100) / 100));
   const [direction, setDirection] = useState<'above' | 'below'>(existingAlert?.direction ?? 'above');
 
-  const min = Math.min(...spark);
-  const max = Math.max(...spark);
-  const span = max - min || 1;
-  const W = 520;
-  const H = 140;
-  const line = spark.map((v, idx) => `${idx === 0 ? 'M' : 'L'}${((idx / (spark.length - 1)) * W).toFixed(1)} ${(12 + (1 - (v - min) / span) * (H - 24)).toFixed(1)}`).join(' ');
   const rangePct = clamp(((quote.price - quote.low52) / Math.max(0.01, quote.high52 - quote.low52)) * 100, 2, 98);
   const posValue = holding ? holding.units * holding.price : 0;
   const posReturn = holding ? ((holding.price - holding.cost) / holding.cost) * 100 : 0;
@@ -596,7 +591,7 @@ function AssetInspectorModal({
         <div className="db-modal-head">
           <div>
             <span className="db-tag info">{quote.cls} · {quote.sector}</span>
-            <h2 id="db-inspector-title" style={{ marginTop: 8 }}>{quote.symbol} · {quote.name}</h2>
+            <h2 id="db-inspector-title" style={{ marginTop: 8 }}><AssetLogo symbol={quote.symbol} />{quote.symbol} · {quote.name}</h2>
           </div>
           <button className="db-icon-btn" onClick={onClose} aria-label="Close asset details"><Icon name="close" size={20} /></button>
         </div>
@@ -609,16 +604,13 @@ function AssetInspectorModal({
           <span className={`db-tag ${quote.day >= 0 ? '' : 'neg'}`}>{quote.day >= 0 ? '▲' : '▼'} {pct(quote.day)} today</span>
         </div>
 
-        <svg viewBox={`0 0 ${W} ${H}`} className="db-inspector-chart" role="img" aria-label={`${quote.symbol} 30 day sample trend`}>
-          <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="#2b624a22" />
-          <path d={line} fill="none" stroke="#2b624a" strokeWidth="2.5" strokeLinejoin="round" />
-        </svg>
+        <MarketChart key={quote.symbol} symbol={quote.symbol} />
 
         <div className="db-range-bar-wrap">
           <div className="db-row-between db-small db-muted">
-            <span>52W Low: {money(quote.low52)}</span>
+            <span>Sample 52W Low: {money(quote.low52)}</span>
             <span>{quote.metric} · Yield {quote.divYield.toFixed(2)}%</span>
-            <span>52W High: {money(quote.high52)}</span>
+            <span>Sample 52W High: {money(quote.high52)}</span>
           </div>
           <div className="db-52w-track">
             <span className="db-52w-fill" style={{ width: `${rangePct}%` }} />
@@ -628,7 +620,7 @@ function AssetInspectorModal({
 
         {holding ? (
           <div className="db-inspector-position">
-            <h3>Your Position</h3>
+            <h3>Your simulated position</h3>
             <div className="db-inspector-metrics">
               <div><span>Market value</span><strong>{money(posValue)}</strong></div>
               <div><span>Units held</span><strong>{holding.units.toLocaleString('en-US', { maximumFractionDigits: 4 })}</strong></div>
@@ -1654,7 +1646,7 @@ export default function DashboardPage({
               return (
                 <li key={h.symbol}>
                   <button type="button" className="db-asset-link" onClick={() => setInspectedSymbol(h.symbol)}>
-                    <span className={`db-holding-monogram db-symbol-${h.symbol.toLowerCase()}`} aria-hidden="true">{h.symbol === 'AAPL' ? 'a' : h.symbol === 'BTC' ? '₿' : h.symbol.slice(0, 1)}</span><span><strong>{h.symbol}</strong>
+                    <AssetLogo symbol={h.symbol} /><span><strong>{h.symbol}</strong>
                     <small>{h.name} · {h.units.toLocaleString('en-US', { maximumFractionDigits: 3 })} units</small></span>
                   </button>
                   <div className="db-num">
@@ -1698,8 +1690,8 @@ export default function DashboardPage({
             {state.watchlist.slice(0, 4).map(item => (
               <li key={item.symbol}>
                 <button type="button" className="db-asset-link" onClick={() => setInspectedSymbol(item.symbol)}>
-                  <strong>{item.symbol}</strong>
-                  <small>{item.name}</small>
+                  <AssetLogo symbol={item.symbol} /><span><strong>{item.symbol}</strong>
+                  <small>{item.name}</small></span>
                 </button>
                 <Spark data={item.spark} />
                 <div className="db-num">{M(item.price)}<small className={tone(item.day)}>{pct(item.day)}</small></div>
@@ -1778,7 +1770,7 @@ export default function DashboardPage({
                           <tr key={h.symbol}>
                             <td>
                               <button type="button" className="db-asset-link" onClick={() => setInspectedSymbol(h.symbol)}>
-                                <strong>{h.symbol} {hasAlert && <em className="db-alert-dot" title="Price alert active">●</em>}</strong>
+                                <AssetLogo symbol={h.symbol} /><strong>{h.symbol} {hasAlert && <em className="db-alert-dot" title="Price alert active">●</em>}</strong>
                                 <small>{h.name}</small>
                               </button>
                             </td>
@@ -1825,7 +1817,7 @@ export default function DashboardPage({
         <div className="db-card-head">
           <div>
             <h2>Stocks, ETFs &amp; Bonds Screener</h2>
-            <span className="db-small db-muted">Click any asset to inspect 52-week range, set price alerts, or place sample orders.</span>
+            <span className="db-small db-muted">Reference quotes and sparklines are samples. Open an asset for an external market chart; orders remain simulated.</span>
           </div>
           <div className="db-toolbar-inline">
             <label className="db-inline-search">
@@ -1887,7 +1879,7 @@ export default function DashboardPage({
                     </td>
                     <td>
                       <button type="button" className="db-asset-link" onClick={() => setInspectedSymbol(item.symbol)}>
-                        <strong>{item.symbol}</strong>
+                        <AssetLogo symbol={item.symbol} /><strong>{item.symbol}</strong>
                         <small>{item.name}</small>
                       </button>
                     </td>
@@ -1988,7 +1980,7 @@ export default function DashboardPage({
                 const qtr = (holdingValue(h) * (yld / 100)) / 4;
                 return (
                   <tr key={h.symbol}>
-                    <td><strong>{h.symbol}</strong><small>{h.name}</small></td>
+                    <td><AssetLogo symbol={h.symbol} size={28} /> <strong>{h.symbol}</strong><small>{h.name}</small></td>
                     <td className="num">{M(holdingValue(h))}</td>
                     <td className="num">{yld.toFixed(2)}%</td>
                     <td className="num db-pos">+{M(qtr)}</td>
@@ -2200,7 +2192,7 @@ export default function DashboardPage({
           <ul className="db-list">
             {losers.map(h => (
               <li key={h.symbol}>
-                <div><strong>{h.symbol}</strong><small>Price {M(h.price)} vs avg cost {M(h.cost)}</small></div>
+                <div className="db-asset-identity"><AssetLogo symbol={h.symbol} /><span><strong>{h.symbol}</strong><small>Price {M(h.price)} vs avg cost {M(h.cost)}</small></span></div>
                 <span className="db-num db-neg">{M((h.cost - h.price) * h.units)} unrealized loss</span>
               </li>
             ))}

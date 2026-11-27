@@ -13,11 +13,11 @@ Six forest/paper editorial templates, each with HTML and a plain-text alternativ
 | Demo workspace saved | Explicit cloud save | Off by default; opt-in, one per UTC-aligned hour |
 | Requested preview | Settings → Email me a preview | Explicit request, one per 15-minute UTC-aligned window |
 
-Emails go only to the authenticated account's stored email. The preview endpoint does not accept a recipient, subject or HTML body. Demo/guest actions never enqueue emails. No deposit/trade receipts, daily digest, marketing, verification or recovery messages are implemented here. Those require their own trustworthy event sources and workflows.
+Emails go only to the authenticated account's stored email. The preview endpoint does not accept a recipient, subject or HTML body. Demo/guest actions never enqueue emails. No deposit/trade receipts, daily digest, or marketing messages are implemented here. Verification and recovery use the separate short-lived link workflow in `docs/ACCOUNT_LINKS.md`, not this outbox.
 
 Welcome, password-change and support events are enqueued in the same database transaction as the underlying write. Login and demo-save notifications use best-effort enqueue after a successful action; an enqueue failure must not undo that action. Email-provider failure does not roll back account/password/support changes.
 
-Account email ownership is still unverified in this release. Before opening registration broadly, implement verification and stronger abuse controls; email notifications do not solve account verification or recovery. Email addresses are not considered verified just because a provider accepted a notification.
+Account emails remain unverified until the user completes the separate verification-link workflow. Before opening registration broadly, deploy migration 003, configure delivery, smoke-test links, and review abuse controls. Email addresses are not considered verified just because a provider accepted a notification.
 
 ## Visual treatment and compatibility
 
@@ -42,7 +42,7 @@ To regenerate specimens: `npm run emails:preview` (also runs automatically durin
    - `EMAIL_REPLY_TO`: optional monitored support mailbox.
    - `CRON_SECRET`: at least 32 random characters for the retry worker.
 
-3. Run `npm run db:migrate` with your Neon connection configured. It now applies both numbered migrations, including `db/002_email_notifications.sql`.
+3. Run `npm run db:migrate` with your Neon connection configured. It applies all numbered migrations, including `db/002_email_notifications.sql` and `db/003_account_tokens.sql`.
 4. Redeploy. Settings shows **Provider configured** only when the required provider variables exist. This is not proof of DNS verification, inbox placement or provider health.
 5. From a test server account, request a preview and check your actual inbox, spam folder, provider logs and the app status. Test both light/dark and images-disabled clients.
 

@@ -18,7 +18,7 @@ Implemented:
 
 Create a Neon project and a database for this application. Use a separate Neon branch/database for previews. Copy the **pooled** connection URL with `sslmode=require` into your own local environment and Vercel's encrypted environment settings. Do not paste it into chat or put it in a `VITE_` variable.
 
-Runtime migrations are `db/001_accounts.sql` and `db/002_email_notifications.sql`; the migration script applies both in order. The historical `prisma/schema.prisma` is a design scaffold and is **not** the schema used by these APIs. Do not run Prisma migrations against this installation without reconciling the schemas.
+Runtime migrations are `db/001_accounts.sql`, `db/002_email_notifications.sql`, and `db/003_account_tokens.sql`; the migration script applies all three in order. The historical `prisma/schema.prisma` is a design scaffold and is **not** the schema used by these APIs. Do not run Prisma migrations against this installation without reconciling the schemas.
 
 Use a database owner for migration and a restricted DML-only application role for runtime where possible. The browser never connects to Neon. Access isolation is implemented by session-authenticated API queries, not browser credentials or a claimed RLS policy.
 
@@ -78,14 +78,14 @@ No Vercel deployment or Neon database changes were performed in this session.
 - Adopt a retention policy for accounts, support requests and security events. Periodically delete expired `app_sessions` and `app_rate_limits` rows using a trusted scheduled task.
 - Add production error monitoring/alerts and a support-agent workflow. Existing server errors log only error name/code, not passwords, cookies or database URLs.
 - Review platform IP forwarding and add edge/WAF throttling. Database IP rate limits are a baseline, not comprehensive bot/DDoS protection.
-- Complete independent security/accessibility review, privacy policy and terms. Password recovery and email ownership checks are currently unavailable; communicate that limitation before inviting users.
+- Complete independent security/accessibility review, privacy policy and terms. Verify password recovery and email ownership links against the deployed database and sender before inviting users. See `docs/ACCOUNT_LINKS.md`.
 - Do not enable a strict CSP without accounting for the current single-file build's inline scripts/styles and permitted market/image/font endpoints. Current headers are a baseline, not a security certification.
 
 ## Not implemented / blocked live-service work
 
 | Area | Still required |
 | --- | --- |
-| Email | Resend transactional delivery is implemented but requires a verified sender and live configuration. Single-use expiring verification/recovery tokens and verified email changes are still unimplemented. No fake recovery codes exist in server mode. |
+| Email | Resend transactional delivery is implemented but requires a verified sender and live configuration. Single-use expiring verification/recovery links require migration 003 and configured delivery. Verified email changes remain unimplemented. No fake recovery codes exist in server mode. |
 | MFA / social / passkeys | Enrollment, challenges, recovery, server-verified provider assertions and session step-up. Hidden/unavailable for server accounts rather than simulated as secure. |
 | Live brokerage / orders | Broker contract, country/product eligibility, KYC/AML/tax agreements, quotes/licensing, order lifecycle, execution/tax lots and statements. |
 | Live banking / crypto | Provider contracts, verified beneficiaries, custody/network policies, withdrawal safeguards, signed/replay-protected webhooks and reconciliation. |

@@ -21,9 +21,10 @@ export default function ServerAccountTools({ account, onAccount, onSignedOut }: 
   });
  }
  return <section className="db-card db-span-4"><div className="db-card-head"><h2>Account &amp; security</h2></div>
-  <p className="db-small db-muted">Signed in as {account.email}. Email unverified. Live investing is disabled. Never submit identity documents, card details, or wallet secrets.</p>
+  <p className="db-small db-muted">Signed in as {account.email}. Email {account.emailVerified ? 'verified' : 'unverified'}. Live investing is disabled. Never submit identity documents, card details, or wallet secrets.</p>
   {error && <p role="alert" className="db-alert">{error}</p>}{notice && <p role="status" className="db-alert ok">{notice}</p>}
   <fieldset disabled={busy} style={{ border: 0, padding: 0, marginTop: 20 }}>
+   {!account.emailVerified && <button type="button" className="db-btn" onClick={() => void run(async () => { await accountAction('request-verification'); setNotice('Verification link requested. If delivery succeeds, check your inbox. Links expire in 30 minutes.'); })}>Send email verification link</button>}
    <form className="dialog-form" onSubmit={event => submit(event, 'profile')}>
     <label className="db-field">Full name<input name="name" defaultValue={account.name} required minLength={2} maxLength={100} autoComplete="name" /></label>
     <label className="db-field">Country<select name="country" defaultValue={account.country || 'United States'}>{COUNTRIES.map(country => <option key={country}>{country}</option>)}</select></label>

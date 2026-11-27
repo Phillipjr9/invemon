@@ -1,3 +1,4 @@
+import AccountLinkPage from './pages/AccountLinkPage';
 import { useEffect, useState } from 'react';
 import EmailStudio from './pages/EmailStudio';
 import ThemeToggle from './components/ThemeToggle';
@@ -10,10 +11,10 @@ import ServerAuthPage from './pages/ServerAuthPage';
 import ServerAccountTools from './components/ServerAccountTools';
 import { SERVER_ACCOUNTS, api, accountAction } from './services/api';
 
-type View = 'home' | 'signup' | 'login' | 'dashboard' | 'emails';
+type View = 'home' | 'signup' | 'login' | 'dashboard' | 'emails' | 'reset' | 'verify';
 const getView = (): View => {
-  const path = window.location.hash.slice(1);
-  return ['signup', 'login', 'dashboard', 'emails'].includes(path) ? path as View : 'home';
+  const path = window.location.hash.slice(1).split('?')[0];
+  return ['signup', 'login', 'dashboard', 'emails', 'reset', 'verify'].includes(path) ? path as View : 'home';
 };
 export default function App() {
   const [view, setView] = useState<View>(getView);
@@ -44,6 +45,7 @@ export default function App() {
   const dashboard = () => navigate('dashboard');
   return <>
     <ThemeToggle />
+    {(view === 'reset' || view === 'verify') && <AccountLinkPage key={view} purpose={view} onLogin={login} />}
     {view === 'emails' && <EmailStudio onBack={account ? dashboard : home} />}
     {view === 'home' && <HomePage onSignup={signup} onLogin={login} onExplore={dashboard} onSupport={() => setDialog({ type: 'support' })} />}
     {SERVER_ACCOUNTS && (view === 'signup' || view === 'login') && <ServerAuthPage key={view} register={view === 'signup'} onBack={home} onSwitch={view === 'signup' ? login : signup} onComplete={next => { setAccount(next); setSessionError(''); dashboard(); }} />}

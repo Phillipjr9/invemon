@@ -1,0 +1,32 @@
+import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+const browser=await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||undefined,args:['--no-sandbox']});
+try {
+ const page=await browser.newPage(),calls=[];
+ await page.route('**/api/account',async route=>{const req=route.request();if(req.method()==='POST')calls.push(req.postDataJSON());await route.fulfill({json:req.method()==='GET'?{account:null}:{ok:true}});});
+ const base=process.env.SERVER_TEST_BASE_URL||'http://localhost:5187',token='a'.repeat(64);
+ await page.goto(`${base}/#login`);
+ await page.getByRole('button',{name:'Forgot your password?'}).click();
+ assert.equal(await page.getByLabel('Password',{exact:true}).count(),0);
+ await page.getByLabel('Email address',{exact:true}).fill('owner@example.com');
+ await page.getByRole('button',{name:'Send reset link'}).click();
+ await page.getByRole('status').waitFor();assert.equal(calls.at(-1).action,'request-reset');
+ await page.goto(`${base}/#reset?token=${token}`);
+ await page.getByRole('heading',{name:'Set a new password'}).waitFor();
+ assert.equal(page.url().includes(token),false);
+ await page.getByLabel('New password',{exact:true}).fill('replacement password!');
+ await page.getByLabel('Confirm new password',{exact:true}).fill('does not match!');
+ await page.getByRole('button',{name:'Update password'}).click();
+ await page.getByRole('alert').waitFor();assert.equal(calls.length,1);
+ await page.getByLabel('Confirm new password',{exact:true}).fill('replacement password!');
+ await page.getByRole('button',{name:'Update password'}).click();
+ await page.getByRole('status').waitFor();assert.equal(calls.at(-1).token,token);
+ const before=calls.length;
+ await page.goto(`${base}/#verify?token=${token}`);
+ await page.getByRole('heading',{name:'Verify your email',exact:true}).waitFor();
+ assert.equal(page.url().includes(token),false);assert.equal(calls.length,before,'GET link must not consume token');
+ await page.getByRole('button',{name:'Verify email address'}).click();
+ await page.getByRole('status').waitFor();assert.equal(calls.at(-1).action,'verify-email');
+ await page.setViewportSize({width:320,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ console.log('PASS: recovery UI, mismatch validation, fragment scrubbing, deliberate verify POST, and mobile layout (HTTP mocked).');
+}finally{await browser.close();}

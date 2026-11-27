@@ -309,3 +309,9 @@
 .db-editorial .crypto-empty p{color:#92a67c}
 .db-editorial .crypto-empty-icon{background:#eaf1de;color:#7f9e61}
 @media(max-width:500px){.db-editorial .crypto-hero{padding:23px;min-height:200px}.db-editorial .crypto-hero h2{font-size:28px}.db-editorial .crypto-hero p{font-size:11px}.db-editorial .crypto-directory-top{padding:22px}.db-editorial .crypto-directory h3{font-size:23px}.db-editorial .crypto-directory-top p{font-size:10px}.db-editorial .crypto-source{font-size:8px}}
+
+/* Asset identity layout shared by compact lists and full market/holding rows. */
+.db-editorial .db-table .db-asset-link:has(>.asset-logo){display:grid;grid-template-columns:36px minmax(0,1fr);column-gap:12px;row-gap:3px;align-items:center}
+.db-editorial .db-table .db-asset-link>.asset-logo{grid-column:1;grid-row:1/3}
+.db-editorial .db-table .db-asset-link>strong,.db-editorial .db-table .db-asset-link>small{grid-column:2}
+.db-asset-identity{display:flex;align-items:center;gap:12px}

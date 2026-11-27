@@ -33,7 +33,7 @@ Never expose database credentials in a `VITE_` variable or commit `.env` files. 
 
 Server accounts support password registration/login, HttpOnly cookie sessions, profile/risk edits, password changes, session revocation, exports, password-confirmed account deletion, support-request storage, transactional email notifications, and explicit revision-checked cloud save/load of simulation data. Passwords are derived on the server using scrypt. Owner-scoped API access is required for cloud data.
 
-Email verification/recovery, MFA, social login/passkeys, support-agent delivery and live financial providers are **not enabled**. Account email delivery is implemented through Resend but requires a verified sending domain and server-side configuration; see [email setup](docs/EMAIL_NOTIFICATIONS.md). The older browser-only account flows are UI demonstrations and are not used for production server authentication. Existing local demo users are not silently migrated into server accounts.
+Single-use email verification and password recovery are implemented but require migration `003_account_tokens.sql`, a verified sender, and configured Resend delivery. MFA, social login/passkeys, support-agent tooling and live financial providers are **not enabled**. Account email delivery is implemented through Resend but requires a verified sending domain and server-side configuration; see [email setup](docs/EMAIL_NOTIFICATIONS.md). The older browser-only account flows are UI demonstrations and are not used for production server authentication. Existing local demo users are not silently migrated into server accounts.
 
 ## Demo features
 
@@ -60,3 +60,16 @@ Design reference: https://templates.studioniskala.com/invemon/template-kit/home/
 Original template: https://themeforest.net/item/invemon-mobile-apps-trading-investment-website-elementor-template-kit/59412221
 
 Confirm rights to reference imagery, branding and fonts or replace them before commercial use.
+
+
+## Market charts and launch readiness
+
+Asset details offer an opt-in TradingView market chart with explicit listing/pair mapping.
+Sample portfolio returns and reference quotes are not live valuations. No stock quote API
+or live trade execution is enabled by embedding a chart. See
+[launch checklist](docs/LAUNCH_READINESS.md) and [account links](docs/ACCOUNT_LINKS.md).
+
+`npm run test:browser` starts isolated demo/server-mode Vite instances and runs browser
+contracts, chart failure paths, asset-image coverage, and responsive dashboard checks.
+Install the browser with `npx playwright install chromium` first. API and provider HTTP
+are mocked in browser contracts; this does not establish production service health.

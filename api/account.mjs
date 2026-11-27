@@ -1,3 +1,4 @@
+import { requestAccountLink, consumeAccountLink } from '../server/account-links.mjs';
 import { emailConfigured, notificationInsert, notificationBucket, tryNotify, attemptUserNotifications } from '../server/notifications.mjs';
 import { db, body, guard, headers, session, account, profile, hashPassword, checkPassword, issueSession, clearSession, rateLimit, audit, randomUUID, HttpError, fail } from '../server/core.mjs';
 export default async function handler(req,res) {
@@ -7,6 +8,8 @@ export default async function handler(req,res) {
   if(req.method==='GET') { const user=await session(req,false);return res.status(200).json({account:user?account(user):null,capabilities:{liveMoney:false,emailDelivery:emailConfigured(),mfa:false}}); }
   const input=body(req);const action=input.action;
   await rateLimit(req,action==='login'||action==='register'?'auth':'account',action==='login'||action==='register'?15:60);
+  if(action==='request-reset') { await requestAccountLink(req,'reset',input.email); return res.status(200).json({ok:true,message:'If an eligible account exists and delivery succeeds, a reset link will arrive shortly.'}); }
+  if(action==='reset-password' || action==='verify-email') { const result=await consumeAccountLink(action==='reset-password'?'reset':'verify',input.token,input.password,res);return res.status(200).json(result); }
   if(action==='register') {
    const email=String(input.email || '').trim().toLowerCase();if(email.length>254||!/^\S+@\S+\.\S+$/.test(email))throw new HttpError(400,'Enter a valid email address.');
    const data=profile(input), passwordHash=await hashPassword(input.password), id=randomUUID();
@@ -26,13 +29,14 @@ export default async function handler(req,res) {
   }
   if(action==='logout') { const current=await session(req,false); if(current) await db()`DELETE FROM app_sessions WHERE token_hash=${current.token_hash}`; clearSession(res); return res.status(200).json({ok:true}); }
   const user=await session(req);
+  if(action==='request-verification') { await requestAccountLink(req,'verify',user.email,user);return res.status(200).json({ok:true}); }
   if(action==='logout-all') {await db()`DELETE FROM app_sessions WHERE user_id=${user.id}`;clearSession(res);return res.status(200).json({ok:true});}
   if(action==='profile') {const data=profile(input);await db()`UPDATE app_users SET profile=${JSON.stringify(data)}::jsonb WHERE id=${user.id}`;await audit(user.id,'profile.updated');return res.status(200).json({account:account({...user,profile:data})});}
   if(action==='password' || action==='delete') {
    if(!await checkPassword(input.currentPassword,user.password_hash))throw new HttpError(401,'Current password not recognized.');
    if(action==='delete') {await db()`DELETE FROM app_users WHERE id=${user.id}`;clearSession(res);return res.status(200).json({ok:true});}
    const hash=await hashPassword(input.password);const sql=db();
-   await sql.transaction([sql`UPDATE app_users SET password_hash=${hash} WHERE id=${user.id}`,sql`DELETE FROM app_sessions WHERE user_id=${user.id}`,notificationInsert(sql,user.id,'password_changed',{name:user.profile.name})]);
+   await sql.transaction([sql`UPDATE app_users SET password_hash=${hash} WHERE id=${user.id}`,sql`DELETE FROM app_sessions WHERE user_id=${user.id}`,sql`DELETE FROM account_action_tokens WHERE user_id=${user.id} AND purpose='reset'`,notificationInsert(sql,user.id,'password_changed',{name:user.profile.name})]);
    await attemptUserNotifications(user.id);
    clearSession(res);return res.status(200).json({ok:true});
   }
@@ -51,6 +55,6 @@ export default async function handler(req,res) {
    const preferences=await db()`SELECT sign_in,support_received,workspace_saved FROM email_preferences WHERE user_id=${user.id}`;
    return res.status(200).json({emailHistory:emails,emailPreferences:preferences[0]||null,account:account(user),workspace:workspace[0]||null,events,tickets,notice:'Simulation data only. Not an investment statement or tax document.'});
   }
-  throw new HttpError(400,'Unsupported action. Live transfers, trading, recovery email, and MFA are not enabled.');
+  throw new HttpError(400,'Unsupported action. Live transfers, trading, and MFA are not enabled.');
  } catch(error){return fail(res,error);}
 }
