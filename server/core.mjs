@@ -41,17 +41,17 @@ export async function checkPassword(password, stored) {
  const hash=await scrypt(password,salt,64,{N:32768,maxmem:64*1024*1024});
  const expected=Buffer.from(hex,'hex');return expected.length===hash.length && timingSafeEqual(hash,expected);
 }
-export function account(user) { return { ...user.profile, email:user.email, serverUserId:user.id, emailVerified:!!user.email_verified_at }; }
+export function account(user) { return { ...user.profile, email:user.email, serverUserId:user.id, emailVerified:!!user.email_verified_at, mfaEnabled:!!user.mfa_secret }; }
 export async function session(req, required=true) {
  const token=String(req.headers.cookie || '').split(';').map(x=>x.trim()).find(x=>x.startsWith(cookieName()+'='))?.slice(cookieName().length+1);
  if (!token || !/^[a-f0-9]{64}$/.test(token)) { if(required)throw new HttpError(401,'Sign in to continue.'); return null; }
- const rows=await db()`SELECT u.*, s.token_hash FROM app_users u JOIN app_sessions s ON s.user_id=u.id WHERE s.token_hash=${sha(token)} AND s.expires_at>now()`;
+ const rows=await db()`SELECT u.*, s.token_hash, s.mfa_verified FROM app_users u JOIN app_sessions s ON s.user_id=u.id WHERE s.token_hash=${sha(token)} AND s.expires_at>now() AND (u.mfa_secret IS NULL OR s.mfa_verified)`;
  if(!rows[0] && required)throw new HttpError(401,'Your session expired. Sign in again.');
  return rows[0] || null;
 }
-export async function issueSession(res, userId) {
+export async function issueSession(res, userId, mfaVerified=false) {
  const token=randomBytes(32).toString('hex');
- await db()`INSERT INTO app_sessions (token_hash,user_id,expires_at) VALUES (${sha(token)},${userId},now()+interval '7 days')`;
+ await db()`INSERT INTO app_sessions (token_hash,user_id,expires_at,mfa_verified) VALUES (${sha(token)},${userId},now()+interval '7 days',${mfaVerified})`;
  res.setHeader('Set-Cookie',`${cookieName()}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800${process.env.NODE_ENV==='production'?'; Secure':''}`);
 }
 export function clearSession(res) { res.setHeader('Set-Cookie',`${cookieName()}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${process.env.NODE_ENV==='production'?'; Secure':''}`); }

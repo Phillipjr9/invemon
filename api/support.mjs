@@ -4,7 +4,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function isSupportAgent(user) {
  // Empty/malformed configuration grants nobody access. Profile/email never grants a role.
  const allowed = String(process.env.SUPPORT_AGENT_IDS || '').split(',').map(id=>id.trim()).filter(id=>UUID.test(id));
- return Boolean(user.email_verified_at && allowed.includes(user.id));
+ return Boolean(user.email_verified_at && user.mfa_secret && user.mfa_verified && allowed.includes(user.id));
 }
 export default async function handler(req,res) {
  headers(res);

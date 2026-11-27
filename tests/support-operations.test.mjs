@@ -7,6 +7,7 @@ await pg.exec(fs.readFileSync(new URL('../db/001_accounts.sql',import.meta.url),
 await pg.exec(fs.readFileSync(new URL('../db/002_email_notifications.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/003_account_tokens.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/004_support_threads.sql',import.meta.url),'utf8'));
+await pg.exec(fs.readFileSync(new URL('../db/005_authenticator_mfa.sql',import.meta.url),'utf8'));
 function query(text, values=[]) {
  return { text, values, then(resolve,reject) { return pg.query(text,values).then(result=>result.rows).then(resolve,reject); } };
 }
@@ -45,6 +46,9 @@ test('staff access is an explicit UUID allowlist plus verified account, never em
  process.env.SUPPORT_AGENT_IDS=agent.value.account.serverUserId;
  assert.equal((await call(support,{method:'GET',cookie:agent.cookie})).value.staff,false);
  await pg.query('UPDATE app_users SET email_verified_at=now() WHERE id=$1',[agent.value.account.serverUserId]);
+ assert.equal((await call(support,{method:'GET',cookie:agent.cookie})).value.staff,false);
+ await pg.query("UPDATE app_users SET mfa_secret='test-encrypted-secret' WHERE id=$1",[agent.value.account.serverUserId]);
+ await pg.query('UPDATE app_sessions SET mfa_verified=true WHERE user_id=$1',[agent.value.account.serverUserId]);
  const list=await call(support,{method:'GET',cookie:agent.cookie});assert.equal(list.value.staff,true);assert.equal(list.value.tickets.length,1);assert.equal(list.value.tickets[0].customer_email,'owner@example.com');
 });
 test('staff writes require password; internal notes are hidden from customers and exports',async()=>{
@@ -72,7 +76,7 @@ test('ticket writes are atomic, revision checked and status constrained',async()
 test('protected readiness reports schema and configuration, not credentials',async()=>{
  delete process.env.OPS_SECRET;
  assert.equal((await call(health,{method:'GET'})).status,503);
- process.env.OPS_SECRET='operations-secret-at-least-32-characters';
+ process.env.OPS_SECRET='operations-secret-at-least-32-characters';process.env.MFA_ENCRYPTION_KEY='c'.repeat(64);
  assert.equal((await call(health,{method:'GET'})).status,401);
  assert.equal((await call(health,{method:'GET',authorization:'Bearer wrong'})).status,401);
  const authorization=`Bearer ${process.env.OPS_SECRET}`;

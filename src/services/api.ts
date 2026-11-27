@@ -7,7 +7,7 @@ export async function api<T>(path: string, method = 'GET', data?: unknown): Prom
  if (!response.ok || result.error) throw new Error(result.error || 'Request failed. Try again.');
  return result as T;
 }
-export const accountAction = (action: string, data: Record<string, unknown> = {}) => api<{account?: InvestmentAccount; id?: string; emailStatus?: string}>('account', 'POST', { ...data, action });
+export const accountAction = (action: string, data: Record<string, unknown> = {}) => api<{account?: InvestmentAccount; mfaRequired?: boolean; id?: string; emailStatus?: string}>('account', 'POST', { ...data, action });
 export function downloadJson(filename: string, value: unknown) {
  const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }));
  const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; anchor.click(); URL.revokeObjectURL(url);

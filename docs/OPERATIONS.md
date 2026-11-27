@@ -59,3 +59,11 @@ There is no automatically enabled cleanup schedule. If an operator schedules thi
 - Configure Vercel error alerting and edge abuse protection; periodically review failed login/reset/support traffic without logging secrets.
 - Approve retention rules for accounts, support conversations, security events and email history before implementing deletion jobs for those records.
 - Complete privacy/terms and define support contact/response expectations. Avoid claims of licensed brokerage, custody or bank-level security.
+
+## Repeatable deployment smoke tests
+
+`SMOKE_ORIGIN=https://your-exact-host npm run smoke:deployment` is **read-only** by default. It checks server API contracts and anonymous access denial. Supply server-side `OPS_SECRET` locally to also check protected schema readiness. For a protected preview, provide an authorized `VERCEL_AUTOMATION_BYPASS_SECRET` in the local environment; do not remove protection or put the secret in a URL.
+
+Writes require all three: `SMOKE_WRITE_TESTS=true`, `SMOKE_CONFIRM_ORIGIN` matching the exact origin, and `SMOKE_TEST_EMAIL` set to an **owned, unused** address. The script creates a temporary account, may send email, checks cloud save/load/conflict, support replies, export, logout/login, then deletes only the newly created account in a finally block. It exits nonzero on failures. If cleanup fails, manually remove that temporary account. No existing account is intentionally deleted. Transactional email/outbox records and external provider logs may remain under provider retention policy even after account deletion. Do not run write tests against production casually.
+
+The command does not verify inbox delivery, token links, authenticator-app enrollment, real market-data availability/rights, backup restoration, legal approval, or accessibility. Follow `docs/AUTHENTICATOR_MFA.md` for MFA and migration 005. Staff access now also requires MFA. OPS_SECRET protects readiness but is not an MFA enrollment key.

@@ -31,3 +31,11 @@
 - Real recurring investments, withdrawals, live orders, tax statements or financial advice.
 
 Do not receive real funds or advertise the demo as a licensed financial service. These items require provider agreements, business/legal decisions and operational credentials, not just UI code.
+
+## Authenticator / deployment verification update
+
+Implemented authenticator-app enrollment/login, encrypted secrets, single-use recovery codes, replay rejection, MFA-gated staff access, and read-only-by-default deployment smoke tests. Migration **005_authenticator_mfa.sql is now mandatory before this code is deployed**. See AUTHENTICATOR_MFA.md and OPERATIONS.md. This does not mean live MFA is configured or certified.
+
+Local verification: 41 automated tests, TypeScript, production build and seven browser suites pass. Provider HTTP is mocked and database tests use PGlite. GitHub Actions latest checked job did not start: its annotation reports the repository owner's account is locked due to a billing issue. Resolve GitHub billing and rerun CI; do not bypass the release gate based solely on local results.
+
+Still unverified: live migrations (including 003/004/005), preview origin/protected access, sender and inbox delivery, production smoke tests, authenticator-app enrollment on the deployed host, monitoring scheduling, isolated Neon backup restore, real chart availability/data rights, legal approval and a security/accessibility review. Production promotion has not been performed.

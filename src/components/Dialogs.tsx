@@ -5,6 +5,7 @@ import Icon from './Icon';
 export type InvestmentAccount = {
   serverUserId?: string;
   emailVerified?: boolean;
+  mfaEnabled?: boolean;
   name: string;
   email: string;
   plan: string;

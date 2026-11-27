@@ -22,3 +22,5 @@
 ## Operational limitations
 
 No assignment/routing, attachments, full-text search, public webhooks, reply-email ingestion, or external helpdesk synchronization is implemented. Staff role configuration is server-controlled rather than a self-service role-management interface. Complete independent access review before inviting staff. Database owner credentials can bypass application authorization; use restricted runtime DB roles and protect migration access.
+
+Staff access additionally requires enabled authenticator MFA and an MFA-verified session. Apply migration 005 and follow AUTHENTICATOR_MFA.md before assigning staff access.

@@ -20,5 +20,5 @@ try{
  const base=await serve(5186,'demo');
  for(const file of ['verify-asset-logos.mjs','verify-market-charts.mjs','verify-dashboard-editorial.mjs'])await run(file,{TEST_BASE_URL:base});
  const serverBase=await serve(5187,'server');
- for(const file of ['verify-server-accounts.mjs','verify-account-links-ui.mjs','verify-support.mjs'])await run(file,{SERVER_TEST_BASE_URL:serverBase});
+ for(const file of ['verify-server-accounts.mjs','verify-account-links-ui.mjs','verify-support.mjs','verify-mfa.mjs'])await run(file,{SERVER_TEST_BASE_URL:serverBase});
 }finally{controller.abort();for(const server of servers)server.kill('SIGTERM');}

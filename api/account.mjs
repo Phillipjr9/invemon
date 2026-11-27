@@ -1,3 +1,4 @@
+import { consumeSecondFactor, mfaConfigured } from '../server/mfa.mjs';
 import { requestAccountLink, consumeAccountLink } from '../server/account-links.mjs';
 import { emailConfigured, notificationInsert, notificationBucket, tryNotify, attemptUserNotifications } from '../server/notifications.mjs';
 import { db, body, guard, headers, session, account, profile, hashPassword, checkPassword, issueSession, clearSession, rateLimit, audit, randomUUID, HttpError, fail } from '../server/core.mjs';
@@ -5,7 +6,7 @@ export default async function handler(req,res) {
  headers(res);
  try {
   guard(req,['GET','POST']);
-  if(req.method==='GET') { const user=await session(req,false);return res.status(200).json({account:user?account(user):null,capabilities:{liveMoney:false,emailDelivery:emailConfigured(),mfa:false}}); }
+  if(req.method==='GET') { const user=await session(req,false);return res.status(200).json({account:user?account(user):null,capabilities:{liveMoney:false,emailDelivery:emailConfigured(),mfa:mfaConfigured()}}); }
   const input=body(req);const action=input.action;
   await rateLimit(req,action==='login'||action==='register'?'auth':'account',action==='login'||action==='register'?15:60);
   if(action==='request-reset') { await requestAccountLink(req,'reset',input.email); return res.status(200).json({ok:true,message:'If an eligible account exists and delivery succeeds, a reset link will arrive shortly.'}); }
@@ -23,7 +24,11 @@ export default async function handler(req,res) {
    // Equivalent expensive derivation for unknown users prevents a timing shortcut.
    const valid=await checkPassword(input.password,users[0]?.password_hash || `scrypt:${'0'.repeat(32)}:${'0'.repeat(128)}`);
    if(!users[0]||!valid)throw new HttpError(401,'Email or password not recognized.');
-   await issueSession(res,users[0].id);await audit(users[0].id,'session.created');
+   if(users[0].mfa_secret){
+    if(!input.code)return res.status(200).json({mfaRequired:true});
+    await consumeSecondFactor(users[0],input.code);
+   }
+   await issueSession(res,users[0].id,Boolean(users[0].mfa_secret));await audit(users[0].id,'session.created');
    await tryNotify(users[0].id,'sign_in',{name:users[0].profile.name},notificationBucket('sign_in',users[0].id));await attemptUserNotifications(users[0].id);
    return res.status(200).json({account:account(users[0])});
   }
@@ -56,6 +61,6 @@ export default async function handler(req,res) {
    const preferences=await db()`SELECT sign_in,support_received,workspace_saved FROM email_preferences WHERE user_id=${user.id}`;
    return res.status(200).json({supportMessages,emailHistory:emails,emailPreferences:preferences[0]||null,account:account(user),workspace:workspace[0]||null,events,tickets,notice:'Simulation data only. Not an investment statement or tax document.'});
   }
-  throw new HttpError(400,'Unsupported action. Live transfers, trading, and MFA are not enabled.');
+  throw new HttpError(400,'Unsupported action. Live transfers and trading are not enabled.');
  } catch(error){return fail(res,error);}
 }
