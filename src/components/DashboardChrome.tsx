@@ -43,6 +43,7 @@ type HeaderProps = {
   hideBalances: boolean;
   unreadCount: number;
   notifications: HeaderNotice[];
+  notificationError?: string;
   readNotificationIds: string[];
   onNavigate: (section: DashboardSection) => void;
   onBackToWebsite: () => void;
@@ -72,6 +73,7 @@ export function DashboardHeader({
   hideBalances,
   unreadCount,
   notifications,
+  notificationError,
   readNotificationIds,
   onNavigate,
   onBackToWebsite,
@@ -221,11 +223,11 @@ export function DashboardHeader({
                 <header>
                   <div>
                     <strong>For your attention</strong>
-                    <small>{unreadCount ? `${unreadCount} new update${unreadCount === 1 ? '' : 's'}` : 'All caught up'}</small>
+                    <small>{notificationError?'Updates unavailable':unreadCount ? `${unreadCount} new update${unreadCount === 1 ? '' : 's'}` : 'All caught up'}</small>
                   </div>
-                  <button type="button" onClick={onMarkAllRead} disabled={!unreadCount}>Mark all read</button>
+                  <button type="button" onClick={onMarkAllRead} disabled={!unreadCount||Boolean(notificationError)}>Mark all read</button>
                 </header>
-                {notifications.length ? (
+                {notificationError ? <div className="db-notification-empty" role="status"><strong>Notifications unavailable</strong><p>{notificationError}</p></div> : notifications.length ? (
                   <div className="db-notification-list">
                     {notifications.map(item => {
                       const isRead = readNotificationIds.includes(item.id);

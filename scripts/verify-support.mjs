@@ -7,6 +7,7 @@ try{
  const account={serverUserId:'customer',name:'Taylor',email:'taylor@example.com',plan:'Free',risk:'Balanced',country:'United States'};
  const ticket={id,subject:'Workspace question',message:'How can I load my saved workspace?',status:'open',revision:1,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
  const messages=[];let staff=false,conflict=false,submissions=[];
+ await page.route('**/api/activity**',r=>r.fulfill({json:{entries:[],nextCursor:null,unreadCount:'0'}}));
  await page.route('**/api/account',route=>route.fulfill({json:{account}}));
  await page.route('**/api/support*',async route=>{
   const req=route.request();

@@ -10,7 +10,7 @@
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate-neon.mjs",
     "test:api": "node --experimental-test-module-mocks --test tests/api.test.mjs",
     "test:math": "node --import tsx --test tests/investment-math.test.ts tests/ledger-display.test.ts",
-    "test": "npm run test:math && npm run test:api && npm run test:emails && npm run test:links && npm run test:operations && npm run test:migrations && npm run test:mfa && npm run test:smoke && npm run test:funding && npm run test:ledger && npm run test:balances && npm run test:reservations && npm run test:admin && npm run test:withdrawals && npm run test:goals && npm run test:router",
+    "test": "npm run test:math && npm run test:api && npm run test:emails && npm run test:links && npm run test:operations && npm run test:migrations && npm run test:mfa && npm run test:smoke && npm run test:funding && npm run test:ledger && npm run test:balances && npm run test:reservations && npm run test:admin && npm run test:withdrawals && npm run test:goals && npm run test:router && npm run test:activity",
     "emails:preview": "node scripts/generate-email-previews.mjs",
     "test:emails": "node --experimental-test-module-mocks --test tests/email.test.mjs",
     "test:links": "node --experimental-test-module-mocks --test tests/account-links.test.mjs",
@@ -27,7 +27,8 @@
     "test:admin": "node --experimental-test-module-mocks --test tests/admin.test.mjs",
     "test:withdrawals": "node --experimental-test-module-mocks --test tests/withdrawals.test.mjs",
     "test:goals": "node --experimental-test-module-mocks --test tests/goals.test.mjs",
-    "test:router": "node --test tests/api-router.test.mjs"
+    "test:router": "node --test tests/api-router.test.mjs",
+    "test:activity": "node --experimental-test-module-mocks --test tests/activity.test.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.1",

@@ -8,6 +8,7 @@ try{
  const page=await browser.newPage({viewport:{width:1440,height:1050}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
  const base=process.env.SERVER_TEST_BASE_URL||'http://localhost:5187';let signed=false;
  const account={serverUserId:'test-funding',email:'test@example.com',name:'Funding Tester',country:'United States',risk:'Balanced',plan:'Free'};
+ await page.route('**/api/activity**',r=>r.fulfill({json:{entries:[],nextCursor:null,unreadCount:'0'}}));
  await page.route('**/api/account',r=>r.fulfill({json:{account:signed?account:null}}));
  await page.route('**/api/workspace',r=>r.fulfill({json:{workspace:null}}));
  await page.route('**/api/mfa',r=>r.fulfill({json:{configured:false,enabled:false,recoveryCodesRemaining:0}}));
