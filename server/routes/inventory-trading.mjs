@@ -1,3 +1,4 @@
+import {attemptUserNotifications} from '../notifications.mjs';
 import {db,headers,guard,session,body,HttpError,fail,rateLimit,checkPassword,randomUUID} from '../core.mjs';
 import {decimalToUnits} from '../ledger.mjs';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -26,6 +27,7 @@ export default async function handler(req,res){
   if(!user.email_verified_at||!user.mfa_secret||!user.mfa_verified)throw new HttpError(403,'Verified email and an MFA-verified session are required.');
   if(!await checkPassword(input.currentPassword,user.password_hash))throw new HttpError(401,'Confirm your current password.');
   const rows=await sql`SELECT accept_dealer_quote(${input.quoteId}::uuid,${user.id}::uuid) AS journal_id`;
+  await attemptUserNotifications(user.id);
   return res.status(200).json({journalId:rows[0].journal_id,settled:true,externalTransfer:false});
  }catch(error){
   if(error.code==='P0002')return fail(res,new HttpError(404,'Quote not found.'));

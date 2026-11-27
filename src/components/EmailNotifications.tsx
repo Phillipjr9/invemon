@@ -4,7 +4,7 @@ import { api } from '../services/api';
 type Preferences = { sign_in: boolean; support_received: boolean; workspace_saved: boolean };
 type History = { id: string; type: string; status: string; created_at: string };
 type Response = { configured: boolean; preferences: Preferences; history: History[] };
-const labels: Record<string,string> = {welcome:'Welcome',sign_in:'New sign-in',password_changed:'Password changed',support_received:'Support acknowledgment',workspace_saved:'Archived workspace notification',preview:'Requested preview'};
+const labels: Record<string,string> = {welcome:'Welcome',sign_in:'New sign-in',password_changed:'Password changed',support_received:'Support acknowledgment',workspace_saved:'Archived workspace notification',preview:'Requested preview',trade_settled:'Internal crypto trade settled',withdrawal_requested:'Withdrawal requested',withdrawal_reviewing:'Withdrawal under review',withdrawal_approved:'Withdrawal approved—not paid',withdrawal_rejected:'Withdrawal rejected',withdrawal_cancelled:'Withdrawal cancelled'};
 const statuses: Record<string,string> = {pending:'Queued',processing:'Sending',accepted:'Accepted by provider',failed:'Delivery attempt failed',expired:'Expired',skipped:'Skipped — opted out'};
 export default function EmailNotifications({onDirtyChange}:{onDirtyChange?:(dirty:boolean)=>void}={}) {
  const [data,setData] = useState<Response | null>(null), [prefs,setPrefs] = useState<Preferences | null>(null);
@@ -33,7 +33,7 @@ export default function EmailNotifications({onDirtyChange}:{onDirtyChange?:(dirt
  }
 
  return <section className="db-card db-span-4"><div className="db-card-head"><h2>Email notifications</h2><span className="db-tag info">{data ? data.configured ? 'Provider configured' : 'Delivery not configured' : 'Account emails'}</span></div>
-  <p className="db-small db-muted">Choose useful account updates. Welcome and password-change notices are transactional security messages, not marketing. Email preferences are separate from in-app reminders.</p>
+  <p className="db-small db-muted">Choose useful account updates. Welcome, password-change, settled-trade and withdrawal status notices are transactional messages, not marketing. Email preferences are separate from in-app reminders.</p>
   {data && !data.configured && <p className="db-small" style={{marginTop:12}}>Delivery is off until your administrator configures a verified sender and email provider.</p>}
   {error && <p role="alert" className="db-alert">{error}</p>}{notice && <p role="status" className="db-alert ok">{notice}</p>}
   {!data&&!error&&<p role="status">Loading email preferences…</p>}
@@ -44,7 +44,7 @@ export default function EmailNotifications({onDirtyChange}:{onDirtyChange?:(dirt
    <button type="button" className="db-btn" disabled={busy} onClick={()=>void savePreferences()}>Save email preferences</button>
   </fieldset>}
   <div className="db-btn-row" style={{marginTop:18}}><button type="button" className="db-btn ghost" disabled={busy} onClick={()=>void refresh()}>Refresh email status</button></div>
-  <p className="db-small db-muted" style={{marginTop:12}}>Accepted means the email provider accepted the message, not that it reached your inbox. Financial confirmations will only be enabled with verified transaction events.</p>
+  <p className="db-small db-muted" style={{marginTop:12}}>Accepted means the email provider accepted the message, not that it reached your inbox. Trade and withdrawal emails describe recorded internal events. Withdrawal approval is not payment. Open account activity for the latest status.</p>
   {data && <details style={{marginTop:20}}><summary>Recent email activity</summary>{data.history.length ? <ul className="db-list">{data.history.map(item=><li key={item.id}><div><strong>{labels[item.type] || 'Account email'}</strong><small>{new Date(item.created_at).toLocaleString()}</small></div><span className="db-small">{statuses[item.status] || item.status}</span></li>)}</ul> : <p className="db-small db-muted" style={{marginTop:12}}>No email activity yet.</p>}</details>}
  </section>;
 }

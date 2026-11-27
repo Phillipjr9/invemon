@@ -1,3 +1,4 @@
+import {attemptUserNotifications} from '../notifications.mjs';
 import {db,headers,guard,session,body,HttpError,fail,rateLimit,checkPassword,randomUUID} from '../core.mjs';
 import {destinationEncryptionConfigured,validateDestination,encryptDestination,atomicWithdrawalAmount} from '../withdrawals.mjs';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -27,7 +28,7 @@ export default async function handler(req,res){
   }
   if(typeof input.id!=='string'||!uuid.test(input.id))throw new HttpError(400,'Invalid request or destination ID.');
   if(input.action==='cancel'){
-   await sql`SELECT cancel_customer_withdrawal(${input.id}::uuid,${user.id}::uuid)`;return res.status(200).json({cancelled:true});
+   await sql`SELECT cancel_customer_withdrawal(${input.id}::uuid,${user.id}::uuid)`;await attemptUserNotifications(user.id);return res.status(200).json({cancelled:true});
   }
   if(process.env.WITHDRAWALS_ENABLED!=='true'||!destinationEncryptionConfigured())throw new HttpError(503,'Withdrawal submission is not enabled.');
   if(typeof input.requestKey!=='string'||!uuid.test(input.requestKey))throw new HttpError(400,'Provide a stable request key.');
@@ -35,6 +36,7 @@ export default async function handler(req,res){
   if(rows.length!==1)throw new HttpError(400,'Destination or matching balance account is unavailable.');
   const units=atomicWithdrawalAmount(input.amount,rows[0].decimals);
   const result=await sql`SELECT request_customer_withdrawal(${randomUUID()}::uuid,${user.id}::uuid,${rows[0].id}::uuid,${input.id}::uuid,${units},${input.requestKey}) AS id`;
+  await attemptUserNotifications(user.id);
   return res.status(201).json({id:result[0].id,payoutInitiated:false});
  }catch(error){
   if(error.code==='40001')return fail(res,new HttpError(409,'Request changed or can no longer be cancelled. Refresh its status.'));

@@ -74,3 +74,17 @@ test('expired quote cannot debit funds even if the pair remains enabled',async()
  const expired=randomUUID();await pg.query("INSERT INTO dealer_quotes SELECT $1,user_id,pair_id,source_account,target_account,source_inventory,target_inventory,source_asset,target_asset,source_units,fee_units,target_units,now()-interval '1 second',created_at FROM dealer_quotes WHERE id=$2",[expired,quote.id]);
  assert.equal((await accept(expired)).status,409);
 });
+test('completed trades enqueue exactly one private transactional email; replay and failed quotes do not duplicate',async()=>{
+ const trades=(await pg.query('SELECT quote_id,user_id FROM dealer_trades')).rows;
+ const emails=(await pg.query("SELECT user_id,event_key,type,payload FROM email_outbox WHERE type='trade_settled'")).rows;
+ assert.equal(emails.length,trades.length);assert.equal(new Set(emails.map(e=>e.event_key)).size,trades.length);
+ assert.ok(emails.every(e=>e.user_id===user&&Object.keys(e.payload).sort().join(',')==='occurredAt,reference'));
+ assert.equal((await accept(quote.id)).status,200);assert.equal((await pg.query("SELECT count(*) FROM email_outbox WHERE type='trade_settled'")).rows[0].count,trades.length);
+});
+test('notification insertion failure rolls back trade, journal and inventory together',async()=>{
+ const q=(await getQuote('0.00000010',reversePair)).body.quote;
+ const before=await pool(targetPool),trades=(await pg.query('SELECT count(*) FROM dealer_trades')).rows[0].count;
+ await pg.exec("CREATE FUNCTION fail_transaction_mail() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test mail failure'; END; $$;CREATE TRIGGER fail_transaction_mail BEFORE INSERT ON email_outbox FOR EACH ROW EXECUTE FUNCTION fail_transaction_mail()");
+ assert.equal((await accept(q.id)).status,500);
+ await pg.exec('DROP TRIGGER fail_transaction_mail ON email_outbox');assert.equal(await pool(targetPool),before);assert.equal((await pg.query('SELECT count(*) FROM dealer_trades')).rows[0].count,trades);
+});

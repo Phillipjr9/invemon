@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { EMAIL_TYPES, EMAIL_TEMPLATE_TYPES, renderEmail } from '../server/email-templates.mjs';
 const pg=new PGlite();
-for(const file of ['001_accounts.sql','002_email_notifications.sql','003_account_tokens.sql','004_support_threads.sql','005_authenticator_mfa.sql'])await pg.exec(fs.readFileSync(new URL(`../db/${file}`,import.meta.url),'utf8'));
+for(const file of fs.readdirSync(new URL('../db/',import.meta.url)).filter(n=>n.endsWith('.sql')).sort())await pg.exec(fs.readFileSync(new URL(`../db/${file}`,import.meta.url),'utf8'));
 function query(text,values=[]){return {text,values,then(resolve,reject){return pg.query(text,values).then(result=>result.rows).then(resolve,reject);}};}
 function sql(parts,...values){return query(parts.reduce((s,p,i)=>s+p+(i<values.length?`$${i+1}`:''),''),values);}
 sql.transaction=statements=>pg.transaction(async tx=>{const rows=[];for(const s of statements)rows.push((await tx.query(s.text,s.values)).rows);return rows;});
@@ -25,18 +25,19 @@ after(async()=>{globalThis.fetch=originalFetch;await pg.close();});
 async function call(handler,{method='POST',data,cookieValue=cookie,authorization,origin='https://invemon.example'}={}){let status=200,result;await handler({method,body:data,headers:{origin,cookie:cookieValue,authorization,'content-type':'application/json','x-forwarded-for':'10.0.0.1'}},{setHeader(){},status(s){status=s;return this;},json(v){result=v;}});return {status,result};}
 async function enqueue(type='welcome',userId=owner,key=randomUUID()){return notifications.notificationInsert(sql,userId,type,{name:'Alex',reference:'SAMPLE'},key);}
 async function clear(){await pg.query('DELETE FROM email_outbox');calls.length=0;providerStatus=200;}
-test('every branded HTML/plain-text template has distinct content-matched art and safe links',()=>{
+test('every branded HTML/plain-text template has supported art and safe links',()=>{
  const images=new Set();
  for(const type of EMAIL_TEMPLATE_TYPES){
   const email=renderEmail(type,{name:'<script>alert("x")</script>',reference:'<img src=x>',occurredAt:'not-a-date',token:'a'.repeat(64)});
-  assert.ok(email.subject);assert.ok(email.text.includes('simulation'));assert.ok(email.html.length<45000);
+  assert.ok(email.subject);assert.ok(email.text.includes('Never share'));assert.ok(email.html.length<45000);
   assert.equal(email.html.includes('<script>'),false);assert.equal(email.html.includes('<img src=x>'),false);
   assert.match(email.html,/role="presentation"/);assert.match(email.html,/invemon-icon.png/);
-  assert.ok(email.html.includes(`/assets/email/${type}.png`));images.add(type);
-  assert.ok(fs.existsSync(new URL(`../public/assets/email/${type}.png`,import.meta.url)));
+  const art=type==='trade_settled'?'workspace_saved':type.startsWith('withdrawal_')?'support_received':type;
+  assert.ok(email.html.includes(`/assets/email/${art}.png`));images.add(type);
+  assert.ok(fs.existsSync(new URL(`../public/assets/email/${art}.png`,import.meta.url)));
   assert.ok(email.html.includes(['verify','reset'].includes(type)?`/#${type}?token=${'a'.repeat(64)}`:'/#dashboard'));
  }
- assert.equal(images.size,8);
+ assert.equal(images.size,14);
  assert.throws(()=>renderEmail('unknown'));
  assert.throws(()=>renderEmail('welcome',{},'javascript:alert(1)'));
 });
@@ -68,6 +69,14 @@ test('notification API auth, owner history, preference validation and self-only 
  result=await call(api,{data:{action:'preview',to:'attacker@example.com',html:'<script>bad</script>'}});assert.equal(result.status,202);assert.equal(result.result.status,'accepted');assert.deepEqual(JSON.parse(calls[0].options.body).to,['owner@example.com']);assert.equal((await call(api,{data:{action:'preview'}})).status,429);
  const history=await call(api,{method:'GET'});assert.equal(history.result.history.length,1);assert.equal(history.result.history[0].payload,undefined);assert.equal(history.result.history[0].provider_id,undefined);
 });
+test('transactional emails deliver despite optional opt-outs and use stored recipient only',async()=>{
+ await clear();await pg.query('UPDATE email_preferences SET sign_in=false,support_received=false,workspace_saved=false WHERE user_id=$1',[owner]);
+ await enqueue('trade_settled');await enqueue('withdrawal_approved');
+ const sent=await notifications.dispatchNotifications({userId:owner});assert.equal(sent.accepted,2);
+ assert.ok(calls.every(c=>JSON.parse(c.options.body).to[0]==='owner@example.com'));
+ assert.ok(calls.some(c=>JSON.parse(c.options.body).text.includes('Approval is not payment')));
+});
+
 test('retry endpoint requires a strong bearer secret; account deletion cascades email data',async()=>{
  delete process.env.CRON_SECRET;assert.equal((await call(worker,{method:'GET'})).status,503);process.env.CRON_SECRET='x'.repeat(48);assert.equal((await call(worker,{method:'GET',authorization:'Bearer wrong'})).status,401);assert.equal((await call(worker,{method:'GET',authorization:`Bearer ${process.env.CRON_SECRET}`})).status,200);
  await pg.query('DELETE FROM app_users WHERE id=$1',[owner]);assert.equal((await pg.query('SELECT * FROM email_outbox WHERE user_id=$1',[owner])).rows.length,0);assert.equal((await pg.query('SELECT * FROM email_preferences WHERE user_id=$1',[owner])).rows.length,0);
