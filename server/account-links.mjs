@@ -1,3 +1,4 @@
+import { renderEmail } from './email-templates.mjs';
 import { randomBytes } from 'node:crypto';
 import { db, sha, HttpError, hashPassword, clearSession, rateLimit } from './core.mjs';
 import { emailConfigured } from './notifications.mjs';
@@ -26,8 +27,7 @@ export async function requestAccountLink(req, purpose, email, user) {
    method:'POST', signal:AbortSignal.timeout(8000),
    headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json','Idempotency-Key':`account-link-${digest}`},
    body:JSON.stringify({from:process.env.EMAIL_FROM,to:[target.email],subject,
-    text:`${subject}\n\nOpen this single-use link within 30 minutes:\n${url}\n\nIf you did not request this, ignore this message. A new request replaces any previous link. Never share this link. Invemon is an investment simulation.`,
-    html:`<h1>${subject}</h1><p>This single-use link expires in 30 minutes.</p><p><a href="${url}">${subject}</a></p><p>If you did not request this, ignore this message. A new request replaces any previous link. Never share this link.</p><p>Invemon is an investment simulation.</p>`}),
+    ...renderEmail(purpose, {token:raw}, origin)}),
   });
   if (!response.ok || !(await response.json()).id) throw new Error('link_delivery_failed');
  } catch {

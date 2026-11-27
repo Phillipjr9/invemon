@@ -5,7 +5,7 @@ Hello Alex Morgan, this is the email preview you requested from your account not
 Time: 2026-11-27 12:30:00 UTC
 
 
-This is a test notification. No funds moved and no account changes were made. The illustration uses a short, pre-rendered 3D animation with a static fallback.
+This is a test notification. No funds moved and no account changes were made. The illustration is pre-rendered and does not require animation or scripts.
 
 Manage your notifications: https://invemon.example/#dashboard
 

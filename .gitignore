@@ -9,3 +9,6 @@ image-search/
 .env.*
 !.env.example
 .vercel/
+
+# Local art-generation Python environment
+.venv/
