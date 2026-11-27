@@ -6,7 +6,7 @@ This is an initial integration, **not a live crypto deposit service**. No live m
 1. Apply migration 006 with `npm run db:migrate` after reviewing/backing up the target database.
 2. Obtain separate NOWPayments sandbox API and IPN keys through the provider's secure dashboard. Store them server-side as NOWPAYMENTS_SANDBOX_API_KEY and NOWPAYMENTS_SANDBOX_IPN_SECRET. Do not share them in chat or Git.
 3. Configure HTTPS APP_ORIGIN and explicitly set NOWPAYMENTS_SANDBOX_ENABLED=true only for the intended test deployment. No external API calls are made while disabled.
-4. A verified account with enrolled MFA can open Settings → Account & security → Funding setup → Check sandbox funding, then create a hosted sandbox invoice. Coin/network selection is left to provider checkout; there is no claim of universal asset/network support.
+4. Temporarily, any signed-in account (including unverified accounts without MFA) can open Settings → Account & security → Funding setup → Check sandbox funding, then create a hosted sandbox invoice. Coin/network selection is left to provider checkout; there is no claim of universal asset/network support.
 5. Use provider-generated sandbox callbacks to `/api/funding-ipn`. Signatures use recursively sorted JSON and HMAC-SHA512 with constant-time comparison. Match invoice/order ownership and deduplicate identical events. All accepted callbacks become `needs_review`, even `finished`: **nothing credits a balance**. Unmatched events return 409 for provider retry/review.
 
 The fixed sandbox API endpoint is `https://api-sandbox.nowpayments.io/v1/invoice`. Checkout URLs are restricted to sandbox.nowpayments.io or api-sandbox.nowpayments.io. Actual sandbox account behavior, URL format, nested signature serialization and callback identifiers must be verified against current provider documentation and real test events before deployment approval. Do not broaden the allowlist to arbitrary provider-returned hosts.
@@ -28,3 +28,6 @@ Funding/version rows intentionally prevent cascading account deletion through fo
 - Security review, provider sandbox end-to-end tests, operator alerts and recovery drills.
 
 Reference: NOWPayments API documentation, Instant Payment Notifications: https://documenter.getpostman.com/view/7907941/S1a32n38 . Automated tests mock provider HTTP and use PGlite, not live Neon or a provider account.
+
+## Temporary sandbox authentication relaxation
+Email verification and MFA are not required to create sandbox invoices during integration testing. Sign-in, origin validation, owner isolation, rate limits, sandbox-only endpoints, and callback signature checks remain enforced. Bank administration still requires verified email, MFA, allowlisting and password confirmation. Do not carry this relaxation into a future live-funding implementation.

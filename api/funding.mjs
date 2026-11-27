@@ -15,7 +15,8 @@ export default async function handler(req,res){
   }
   if(input.action==='bank-update')return res.status(200).json(await updateBankInstructions(user,input));
   if(input.action==='create-invoice'){
-   if(!user.email_verified_at||!user.mfa_secret||!user.mfa_verified)throw new HttpError(403,'Verified email and authenticator MFA are required for sandbox funding.');
+   // Temporary sandbox-only relaxation: authenticated users may test checkout.
+   // createSandboxInvoice is hard-wired to sandbox; bank admin requirements are unchanged.
    return res.status(201).json(await createSandboxInvoice(user,input.amount));
   }
   throw new HttpError(400,'Unsupported funding action. Live funding and withdrawals remain disabled.');

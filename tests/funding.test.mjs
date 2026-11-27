@@ -34,16 +34,16 @@ test('decimal input, sandbox host allowlist, and recursive callback signature va
  const payload={z:1,a:{b:2,a:3}},secret='secret';const signature=createHmac('sha512',secret).update(JSON.stringify(canonical(payload))).digest('hex');
  assert.equal(verifyIpn(payload,signature,secret),true);assert.equal(verifyIpn({...payload,z:2},signature,secret),false);assert.equal(verifyIpn(payload,'bad',secret),false);
 });
-test('funding requires owner session; sandbox disabled by default and non-MFA users rejected',async()=>{
+test('funding requires owner session; sandbox disabled by default, sign-in still required',async()=>{
  assert.equal((await call(funding,{method:'GET'})).status,401);
  owner=await call(auth,{data:{action:'register',name:'Funding Owner',email:'funding@example.com',password}});uid=owner.value.account.serverUserId;
  other=await call(auth,{data:{action:'register',name:'Other Owner',email:'other-funding@example.com',password}});
- assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'create-invoice',amount:'10'}})).status,403);
- await pg.query("UPDATE app_users SET email_verified_at=now(),mfa_secret='test-secret' WHERE id=$1",[uid]);await pg.query('UPDATE app_sessions SET mfa_verified=true WHERE user_id=$1',[uid]);
+ assert.equal((await call(funding,{data:{action:'create-invoice',amount:'10'}})).status,401);
+ assert.equal((await call(funding,{cookie:owner.cookie,origin:'https://evil.example',data:{action:'create-invoice',amount:'10'}})).status,403);
  assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'create-invoice',amount:'10'}})).status,503);
  assert.equal((await call(funding,{method:'GET',cookie:owner.cookie})).value.liveEnabled,false);
 });
-test('sandbox invoice request binds stored owner/amount and fixed API host; no balance credit',async()=>{
+test('unverified non-MFA user can create sandbox invoice; binds stored owner/amount and fixed API host; no balance credit',async()=>{
  process.env.NOWPAYMENTS_SANDBOX_ENABLED='true';process.env.NOWPAYMENTS_SANDBOX_API_KEY='test';process.env.NOWPAYMENTS_SANDBOX_IPN_SECRET='test-ipn-secret';
  const original=globalThis.fetch;
  globalThis.fetch=async(url,options)=>{assert.equal(url,'https://api-sandbox.nowpayments.io/v1/invoice');const value=JSON.parse(options.body);assert.equal(value.price_amount,12.34);assert.equal(value.ipn_callback_url,'https://invemon.example/api/funding-ipn');return new Response(JSON.stringify({id:'123',invoice_url:'https://sandbox.nowpayments.io/payment/?iid=123'}));};
@@ -65,6 +65,8 @@ test('forged, unmatched and replayed callbacks cannot credit balances; events de
 });
 test('bank drafts require independent allowlist MFA and password; stale revisions fail and customers cannot read',async()=>{
  assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'bank-status'}})).status,403);process.env.FUNDING_ADMIN_IDS=uid;
+ assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'bank-status'}})).status,403);
+ await pg.query("UPDATE app_users SET email_verified_at=now(),mfa_secret='test-secret' WHERE id=$1",[uid]);await pg.query('UPDATE app_sessions SET mfa_verified=true WHERE user_id=$1',[uid]);
  const instructions={beneficiary:'TEST ONLY',bankName:'Fictional Bank',accountNumber:'TEST-123',routingOrSwift:'TEST',currency:'USD',referenceInstructions:'Draft test'};
  assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'bank-update',revision:0,instructions,currentPassword:'wrong'}})).status,401);
  const result=await call(funding,{cookie:owner.cookie,data:{action:'bank-update',revision:0,instructions,currentPassword:password}});assert.equal(result.status,200);assert.equal(result.value.published,false);
