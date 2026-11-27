@@ -20,16 +20,16 @@ Checked on branch arena/74f677d2-invemon after deposit-page restoration. Local s
 
 Found and fixed: Home's FAQ/footer support actions opened a generic account-settings modal instead of Support. Both now navigate to #support. Removed the no-longer-used modal path.
 
-## Routes exist, but their full experiences are missing
+## Restored page layouts; server-backed features remain unavailable
 
 | Section | Current state | Missing |
 | --- | --- | --- |
-| Yield & Income | Heading and unavailable/empty state | Income history, dividend calendar, verified yield product and controls |
-| Auto-invest | Heading and unavailable state | Plan creation/management, server schedules, execution and run history |
-| Goals | Heading and unavailable state | Create/edit goals, server persistence, genuine progress tracking |
-| Insights | Heading and unavailable state | Real allocation/risk/performance analysis |
+| Yield & Income | Income hero, four metric cards, period selector, income history/calendar/source panels | Income history, dividend calendar, verified yield product and controls |
+| Auto-invest | Contribution metrics, recurring-plan workspace, schedule and run-history panels | Plan creation/management, server schedules, execution and run history |
+| Goals | Goals overview, target/savings metrics, goal list, contribution and progress panels | Create/edit goals, server persistence, genuine progress tracking |
+| Insights | Analysis metrics, drift/rebalancing, allocation breakdown and review panels | Real allocation/risk/performance analysis |
 
-All four are reachable from the workspace sidebar/mobile More menu and survive deep-link reload. They are not complete pages equivalent to the older simulated experience. Restoring the legacy DashboardPage wholesale would restore browser-generated money, illustrative returns and simulated actions, so it remains disconnected.
+All four are reachable from the workspace sidebar/mobile More menu and survive deep-link reload. Their fuller page layouts are restored without the old generated figures, APY claims, scores, sample goals or local-money actions. Missing values display unavailable dashes, not invented zeros. Create goal/New DCA plan controls are explicitly disabled until server storage/execution is connected. Income period selection and links to existing account pages work. These layouts are not completed server-backed financial features. Restoring the legacy DashboardPage wholesale would restore browser-generated money, illustrative returns and simulated actions, so it remains disconnected.
 
 ## Not implemented as customer pages/workflows
 
@@ -48,3 +48,5 @@ DashboardPage.tsx is the old simulated workspace. LoginPage.tsx/SignupPage.tsx a
 ## Validation
 
 Five existing browser suites pass with HTTP mocks. Added explicit navigation, deep-link reload and 320/1440px overflow checks for Yield, Auto-invest, Goals and Insights, plus a home-footer Support routing regression. Existing suites cover account access, recovery/verification, support, MFA, settings, portfolio/activity, markets, crypto and deposit. TypeScript, production build and diff whitespace checks pass. No live deployment or external provider validation was performed.
+
+Restored layouts additionally verified with four metric/three content panel assertions on each page, income-period selection, disabled unsupported creation controls, reload and both themes at 320/1440px.

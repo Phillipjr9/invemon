@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import {api} from '../services/api';
 import AssetDirectory from '../components/AssetDirectory';
+import PlanningPages,{type PlanningSection} from '../components/PlanningPages';
 import CryptoMarket, {type CryptoView} from '../components/CryptoMarket';
 import type {InvestmentAccount} from '../components/Dialogs';
 import LedgerActivity,{LedgerBalances} from '../components/LedgerRecords';
@@ -20,16 +21,6 @@ const sections:{id:DashboardSection;label:string;icon:string}[]=[
  {id:'goals',label:'Goals',icon:'target'},{id:'activity',label:'Activity',icon:'list'},
  {id:'insights',label:'Insights',icon:'bulb'},{id:'settings',label:'Settings',icon:'settings'},
 ];
-const emptyCopy:Partial<Record<DashboardSection,[string,string]>>={
- portfolio:['No recorded holdings','Your investment positions will appear here when available.'],
- markets:['Market data is not connected','Quotes will appear once a market-data service is connected.'],
- crypto:['Digital assets','Crypto quotes and account positions are not available yet.'],
- yield:['Your income, in view','Recorded dividends and interest will appear here.'],
- autoinvest:['Build a lasting habit','Recurring investments are not available yet.'],
- goals:['Make room for what matters','Goal planning is not available yet.'],
- activity:['No investment activity to show','Your completed transactions will appear here.'],
- insights:['The bigger picture','Portfolio insights will appear when account records are available.'],
-};
 export default function AccountDashboard({account,onAccount,onBack,onLogin,onSignOut}:{account:InvestmentAccount|null;onAccount:(value:InvestmentAccount|null)=>void;onBack:()=>void;onLogin:()=>void;onSignOut:()=>void}){
  const [section,setSection]=useState<DashboardSection>(()=>{const value=new URLSearchParams(window.location.hash.split('?')[1]||'').get('section');return sections.find(s=>s.id===value)?.id||'overview';});
  const [hidden,setHidden]=useState(false),[command,setCommand]=useState(false),[more,setMore]=useState(false);
@@ -78,7 +69,7 @@ export default function AccountDashboard({account,onAccount,onBack,onLogin,onSig
  <section className="db-card db-span-2"><div className="db-card-head"><h2>Asset allocation</h2></div>{empty('Room to grow','Your allocation will appear with your recorded positions.')}</section>
  <section className="db-card db-span-2"><div className="db-card-head"><h2>Top holdings</h2><button className="db-btn ghost" onClick={()=>navigate('portfolio')}>Full portfolio</button></div>{empty('No recorded holdings','Your investment positions will appear here.')}</section>
  <LedgerActivity hidden={hidden} compact/></div>
- </>:<section className="db-card">{empty(...(emptyCopy[section]||['Your account','Account records will appear here.']))}</section>}
+ </>:<PlanningPages key={section} section={section as PlanningSection} hidden={hidden} onNavigate={navigate} onDeposit={deposit}/>}
  </div></main></div><footer className="db-editorial-footer account-full-footer" aria-label="Invemon platform footer"><div className="db-editorial-footer-top"><button className="account-brand" onClick={onBack} aria-label="Invemon home"><Wordmark/></button><span>Invest with perspective.</span><button onClick={()=>navigate('settings')}>Account settings</button><a href="#funding" onClick={event=>{if(!mayLeave())event.preventDefault();}}>Deposits &amp; payment history</a><a href="#support">Need a hand? <Icon name="arrow" size={16}/></a></div><div className="account-footer-links"><div><strong>Your account</strong><button onClick={()=>navigate('portfolio')}>Portfolio</button><button onClick={()=>navigate('activity')}>Activity</button><button onClick={()=>navigate('settings')}>Profile &amp; security</button></div><div><strong>Explore</strong><button onClick={()=>navigate('markets')}>Stocks &amp; funds</button><button onClick={()=>navigate('crypto')}>Crypto assets</button><button onClick={()=>navigate('insights')}>Insights</button></div><div><strong>Here to help</strong><a href="#support">Contact support</a><button onClick={onBack}>Visit our website</button><button onClick={onSignOut}>Sign out</button></div></div><p>Investing involves risk, including loss of principal. Market data is not a guarantee of execution or future returns. Asset listings are separate from your holdings. Deposits and trading remain unavailable until the required services are enabled.</p><div className="db-editorial-footer-bottom"><span>© {new Date().getFullYear()} Invemon. A longer-term perspective.</span><button onClick={onBack}>Back to website <Icon name="arrow" size={16}/></button></div></footer>
  <CommandPalette open={command} onClose={()=>setCommand(false)} items={sections.map(s=>({id:s.id,group:'Sections' as const,title:s.label,subtitle:'Go to '+s.label,icon:s.icon,onSelect:()=>{navigate(s.id);setCommand(false);}}))}/>
  </div>;

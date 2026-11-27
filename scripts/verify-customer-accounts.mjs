@@ -91,8 +91,12 @@ try{
  // Audit every remaining workspace section through navigation and reload.
  for(const [id,label,heading] of [['yield','Yield & Income','Your income, in view'],['autoinvest','Auto-invest','Build a lasting habit'],['goals','Goals','Make room for what matters'],['insights','Insights','The bigger picture']]){
   await sidebar.getByRole('button',{name:label,exact:true}).click();await page.getByRole('heading',{name:heading,exact:true}).waitFor();
+  assert.equal(await page.locator('.planning-metrics .db-card').count(),4);assert.equal(await page.locator('.planning-panels .planning-panel').count(),3);
+  if(id==='yield'){await page.getByRole('button',{name:'3M',exact:true}).click();await page.getByText('Income history · 3M',{exact:true}).waitFor();}
+  if(id==='goals')assert.equal(await page.getByRole('button',{name:'Create goal · unavailable',exact:true}).isDisabled(),true);
+  if(id==='autoinvest')assert.equal(await page.getByRole('button',{name:'New DCA plan · unavailable',exact:true}).isDisabled(),true);
   assert.equal(new URL(page.url()).hash,`#dashboard?section=${id}`);await page.reload();await page.getByRole('heading',{name:heading,exact:true}).waitFor();
-  for(const width of [1440,320]){await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}await page.setViewportSize({width:1440,height:1000});
+  for(const theme of ['light','dark'])for(const width of [1440,320]){await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}await page.setViewportSize({width:1440,height:1000});
  }
  await page.goto(`${base}/`);await page.getByRole('button',{name:/Contact & support/}).click();await page.waitForURL('**/#support');
  assert.equal(await page.getByRole('dialog',{name:'Account services'}).count(),0);
