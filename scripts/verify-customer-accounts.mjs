@@ -88,5 +88,13 @@ try{
  await page.evaluate(()=>document.documentElement.dataset.theme='dark');await page.waitForTimeout(300);await page.screenshot({path:'.playwright/customer-account-dark.png',fullPage:true});
  balanceFails=true;await page.reload();await page.getByText('Balance unavailable. Please reload to retry.',{exact:true}).waitFor();assert.equal(await page.getByText('$0.00',{exact:true}).count(),0);balanceFails=false;await page.getByRole('button',{name:'Retry balance'}).click();await page.getByRole('region',{name:'Available cash'}).getByText('$0.00',{exact:true}).waitFor();
 
+ // Audit every remaining workspace section through navigation and reload.
+ for(const [id,label,heading] of [['yield','Yield & Income','Your income, in view'],['autoinvest','Auto-invest','Build a lasting habit'],['goals','Goals','Make room for what matters'],['insights','Insights','The bigger picture']]){
+  await sidebar.getByRole('button',{name:label,exact:true}).click();await page.getByRole('heading',{name:heading,exact:true}).waitFor();
+  assert.equal(new URL(page.url()).hash,`#dashboard?section=${id}`);await page.reload();await page.getByRole('heading',{name:heading,exact:true}).waitFor();
+  for(const width of [1440,320]){await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}await page.setViewportSize({width:1440,height:1000});
+ }
+ await page.goto(`${base}/`);await page.getByRole('button',{name:/Contact & support/}).click();await page.waitForURL('**/#support');
+ assert.equal(await page.getByRole('dialog',{name:'Account services'}).count(),0);
  assert.deepEqual(errors,[]);console.log('PASS: server registration/profile, ignored browser money, no simulated holdings/actions, clean Settings and 320px layout. HTTP mocked.');
 }finally{await browser.close();}
