@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { EMAIL_TYPES, renderEmail } from '../server/email-templates.mjs';
+import { EMAIL_TYPES, EMAIL_TEMPLATE_TYPES, renderEmail } from '../server/email-templates.mjs';
 const pg=new PGlite();
 for(const file of ['001_accounts.sql','002_email_notifications.sql','003_account_tokens.sql','004_support_threads.sql','005_authenticator_mfa.sql'])await pg.exec(fs.readFileSync(new URL(`../db/${file}`,import.meta.url),'utf8'));
 function query(text,values=[]){return {text,values,then(resolve,reject){return pg.query(text,values).then(result=>result.rows).then(resolve,reject);}};}
@@ -25,8 +25,18 @@ after(async()=>{globalThis.fetch=originalFetch;await pg.close();});
 async function call(handler,{method='POST',data,cookieValue=cookie,authorization,origin='https://invemon.example'}={}){let status=200,result;await handler({method,body:data,headers:{origin,cookie:cookieValue,authorization,'content-type':'application/json','x-forwarded-for':'10.0.0.1'}},{setHeader(){},status(s){status=s;return this;},json(v){result=v;}});return {status,result};}
 async function enqueue(type='welcome',userId=owner,key=randomUUID()){return notifications.notificationInsert(sql,userId,type,{name:'Alex',reference:'SAMPLE'},key);}
 async function clear(){await pg.query('DELETE FROM email_outbox');calls.length=0;providerStatus=200;}
-test('six HTML/plain-text templates escape user content and keep motion optional',()=>{
- for(const type of EMAIL_TYPES){const email=renderEmail(type,{name:'<script>alert("x")</script>',reference:'<img src=x>',occurredAt:'not-a-date'});assert.ok(email.subject);assert.ok(email.text.includes('simulation'));assert.ok(email.html.length<45000);assert.equal(email.html.includes('<script>'),false);assert.equal(email.html.includes('<img src=x>'),false);assert.match(email.html,/role="presentation"/);assert.match(email.html,/https:\/\/invemon.example\/#dashboard/);if(['welcome','preview'].includes(type)){assert.match(email.html,/prefers-reduced-motion/);assert.match(email.html,/perspective-envelope.gif/);assert.match(email.html,/perspective-envelope.png/);}else assert.equal(email.html.includes('src="https://invemon.example/assets'),false);}
+test('every branded HTML/plain-text template has distinct content-matched art and safe links',()=>{
+ const images=new Set();
+ for(const type of EMAIL_TEMPLATE_TYPES){
+  const email=renderEmail(type,{name:'<script>alert("x")</script>',reference:'<img src=x>',occurredAt:'not-a-date',token:'a'.repeat(64)});
+  assert.ok(email.subject);assert.ok(email.text.includes('simulation'));assert.ok(email.html.length<45000);
+  assert.equal(email.html.includes('<script>'),false);assert.equal(email.html.includes('<img src=x>'),false);
+  assert.match(email.html,/role="presentation"/);assert.match(email.html,/invemon-icon.png/);
+  assert.ok(email.html.includes(`/assets/email/${type}.png`));images.add(type);
+  assert.ok(fs.existsSync(new URL(`../public/assets/email/${type}.png`,import.meta.url)));
+  assert.ok(email.html.includes(['verify','reset'].includes(type)?`/#${type}?token=${'a'.repeat(64)}`:'/#dashboard'));
+ }
+ assert.equal(images.size,8);
  assert.throws(()=>renderEmail('unknown'));
  assert.throws(()=>renderEmail('welcome',{},'javascript:alert(1)'));
 });
