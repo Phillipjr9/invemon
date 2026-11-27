@@ -17,6 +17,7 @@ try{
    if(conflict)return r.fulfill({status:409,json:{error:'This request changed. Reload before reviewing.'}});
    revision++;decision=input.decision;return r.fulfill({json:{revision,payoutInitiated:false}});
   }
+  if(view==='inventory')return r.fulfill({json:{assets:[],inventories:[],pairs:[],events:[],tradingEnabled:false}});
   if(view==='orders')return r.fulfill({json:{orders:[{id:'execution-test',email:'customer@example.com',operation:'stock_buy',provider:'test-provider',source_asset:'USD:BANK',source_units:'2500',fee_units:'25',decimals:2,target_symbol:'TEST',state:'uncertain',funds_state:'held',created_at:'2026-11-27T10:00:00Z',claimed_at:null}]}});
   if(view==='history')return r.fulfill({json:{events:revision?[{id:'event',revision,actor_id:'staff-id',decision,note:'Reviewed test reservation',created_at:'2026-11-27T10:00:00Z'}]:[]}});
   if(view==='customers')return r.fulfill({json:{customers:[{id:customer,email:'customer@example.com',email_verified_at:'2026-11-27',created_at:'2026-11-27'}]}});
