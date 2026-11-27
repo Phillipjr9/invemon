@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate-neon.mjs",
     "test:api": "node --experimental-test-module-mocks --test tests/api.test.mjs",
-    "test:math": "node --import tsx --test tests/investment-math.test.ts",
+    "test:math": "node --import tsx --test tests/investment-math.test.ts tests/ledger-display.test.ts",
     "test": "npm run test:math && npm run test:api && npm run test:emails && npm run test:links && npm run test:operations && npm run test:migrations && npm run test:mfa && npm run test:smoke && npm run test:funding && npm run test:ledger && npm run test:balances",
     "emails:preview": "node scripts/generate-email-previews.mjs",
     "test:emails": "node --experimental-test-module-mocks --test tests/email.test.mjs",

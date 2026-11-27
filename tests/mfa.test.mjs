@@ -25,7 +25,7 @@ async function call(handler,{method='POST',data,cookie,origin='https://invemon.e
 const {authenticator,validStep,encryptSecret,decryptSecret}=await import('../server/mfa.mjs');
 const {sha}=await import('../server/core.mjs');
 const password='a long unique password!';
-let owner,oldCookie,secret,recovery,uid;
+let owner,oldCookie,secret,recovery,uid,enrollmentCode;
 const getUser=async()=> (await pg.query('SELECT * FROM app_users WHERE id=$1',[uid])).rows[0];
 test('TOTP matches RFC 6238 and rejects malformed or expired values',()=>{
  const standard='GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
@@ -61,7 +61,8 @@ test('confirmation checks expiry/code, enables MFA and revokes all pre-enrollmen
  await pg.query("UPDATE app_users SET mfa_pending_expires=now()-interval '1 minute' WHERE id=$1",[uid]);
  assert.equal((await call(mfa,{cookie:owner.cookie,data:{action:'confirm',currentPassword:password,code:authenticator(secret).generate()}})).status,400);
  await pg.query("UPDATE app_users SET mfa_pending_expires=now()+interval '10 minutes' WHERE id=$1",[uid]);
- const confirmed=await call(mfa,{cookie:owner.cookie,data:{action:'confirm',currentPassword:password,code:authenticator(secret).generate()}});assert.equal(confirmed.status,200);
+ enrollmentCode=authenticator(secret).generate();
+ const confirmed=await call(mfa,{cookie:owner.cookie,data:{action:'confirm',currentPassword:password,code:enrollmentCode}});assert.equal(confirmed.status,200);
  recovery=confirmed.value.recoveryCodes;assert.equal(recovery.length,10);owner.cookie=confirmed.cookie;
  const stored=await getUser();assert.equal(stored.mfa_pending_secret,null);assert.equal(stored.mfa_recovery_hashes.length,10);assert.equal(JSON.stringify(stored).includes(recovery[0]),false);
  assert.equal((await call(auth,{method:'GET',cookie:oldCookie})).value.account,null);
@@ -71,7 +72,8 @@ test('confirmation checks expiry/code, enables MFA and revokes all pre-enrollmen
 test('MFA login rejects reused TOTP and consumes a recovery code at most once concurrently',async()=>{
  const login={action:'login',email:'mfa@example.com',password};
  assert.equal((await call(auth,{data:{...login,code:'000invalid'}})).status,401);
- assert.equal((await call(auth,{data:{...login,code:authenticator(secret).generate()}})).status,401);
+ // Replay the actual consumed code, not a newly generated code if the clock crossed a 30s boundary.
+ assert.equal((await call(auth,{data:{...login,code:enrollmentCode}})).status,401);
  const result=await Promise.all([1,2].map(i=>call(auth,{ip:`recovery-${i}`,data:{...login,code:recovery[0]}})));
  assert.deepEqual(result.map(r=>r.status).sort(),[200,401]);
  assert.equal((await getUser()).mfa_recovery_hashes.length,9);

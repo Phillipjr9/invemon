@@ -1,7 +1,7 @@
 import { consumeSecondFactor, mfaConfigured } from '../server/mfa.mjs';
 import { requestAccountLink, consumeAccountLink } from '../server/account-links.mjs';
 import { emailConfigured, notificationInsert, notificationBucket, tryNotify, attemptUserNotifications } from '../server/notifications.mjs';
-import { db, body, guard, headers, session, account, profile, hashPassword, checkPassword, issueSession, clearSession, rateLimit, audit, randomUUID, HttpError, fail } from '../server/core.mjs';
+import { db, body, guard, headers, session, account, profile, hashPassword, checkPassword, issueSession, clearSession, rateLimit, audit, sha, randomUUID, HttpError, fail } from '../server/core.mjs';
 export default async function handler(req,res) {
  headers(res);
  try {
@@ -38,9 +38,19 @@ export default async function handler(req,res) {
   if(action==='logout-all') {await db()`DELETE FROM app_sessions WHERE user_id=${user.id}`;clearSession(res);return res.status(200).json({ok:true});}
   if(action==='security-overview') {
    const sql=db();
-   const sessions=await sql`SELECT created_at,expires_at,(token_hash=${user.token_hash}) AS current, count(*) OVER()::integer AS total FROM app_sessions WHERE user_id=${user.id} AND expires_at>now() ORDER BY created_at DESC LIMIT 20`;
+   const sessions=await sql`SELECT token_hash,created_at,expires_at,(token_hash=${user.token_hash}) AS current, count(*) OVER()::integer AS total FROM app_sessions WHERE user_id=${user.id} AND expires_at>now() ORDER BY created_at DESC LIMIT 20`;
    const events=await sql`SELECT action,created_at FROM security_events WHERE user_id=${user.id} ORDER BY created_at DESC LIMIT 50`;
-   return res.status(200).json({sessions:sessions.map(({total,...entry})=>entry),sessionCount:sessions[0]?.total||0,events});
+   return res.status(200).json({sessions:sessions.map(({total,token_hash,...entry})=>({...entry,id:sha(`manage-session:${token_hash}`)})),sessionCount:sessions[0]?.total||0,events});
+  }
+  if(action==='revoke-session') {
+   if(typeof input.sessionId!=='string'||! /^[a-f0-9]{64}$/.test(input.sessionId))throw new HttpError(400,'Invalid session identifier.');
+   const sql=db();const active=await sql`SELECT token_hash FROM app_sessions WHERE user_id=${user.id} AND expires_at>now()`;
+   const target=active.find(entry=>sha(`manage-session:${entry.token_hash}`)===input.sessionId);
+   if(!target)throw new HttpError(404,'Session not found or already expired.');
+   await sql`DELETE FROM app_sessions WHERE user_id=${user.id} AND token_hash=${target.token_hash}`;
+   await audit(user.id,'session.revoked');
+   const signedOut=target.token_hash===user.token_hash;if(signedOut)clearSession(res);
+   return res.status(200).json({ok:true,signedOut});
   }
   if(action==='profile') {const data=profile(input);await db()`UPDATE app_users SET profile=${JSON.stringify(data)}::jsonb WHERE id=${user.id}`;await audit(user.id,'profile.updated');return res.status(200).json({account:account({...user,profile:data})});}
   if(action==='password' || action==='delete') {

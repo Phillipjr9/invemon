@@ -63,6 +63,19 @@ test('security overview is owner-scoped and never exposes session tokens',async(
  assert.equal(JSON.stringify(result.value).includes('token_hash'),false);assert.equal(JSON.stringify(result.value).includes(owner.cookie.split('=')[1]),false);
  const isolated=await call(auth,{cookie:other.cookie,data:{action:'security-overview'}});assert.equal(isolated.value.events.some(entry=>entry.action==='profile.updated'),false);
 });
+test('individual session revocation rejects other owners and revokes only the selected session',async()=>{
+ const foreign=(await call(auth,{cookie:other.cookie,data:{action:'security-overview'}})).value.sessions[0].id;
+ assert.match(foreign,/^[a-f0-9]{64}$/);
+ assert.equal((await call(auth,{cookie:owner.cookie,data:{action:'revoke-session',sessionId:foreign}})).status,404);
+ assert.equal((await call(auth,{cookie:owner.cookie,data:{action:'revoke-session',sessionId:'invalid'}})).status,400);
+ const second=await call(auth,{data:{action:'login',email:registration.email,password:registration.password}});
+ const overview=(await call(auth,{cookie:owner.cookie,data:{action:'security-overview'}})).value;
+ const target=overview.sessions.find(s=>!s.current);assert.ok(target);
+ const result=await call(auth,{cookie:owner.cookie,data:{action:'revoke-session',sessionId:target.id}});
+ assert.equal(result.status,200);assert.equal(result.value.signedOut,false);
+ assert.equal((await call(auth,{method:'GET',cookie:second.cookie})).value.account,null);
+ assert.equal((await call(auth,{method:'GET',cookie:owner.cookie})).value.account.email,registration.email);
+});
 test('retained ledger records prevent automatic deletion with a useful error and preserve session',async()=>{
  await pg.exec("INSERT INTO ledger_assets VALUES('USD:BANK',2)");
  await pg.query("INSERT INTO ledger_accounts(id,asset,kind,user_id) VALUES($1,'USD:BANK','customer_liability',$2)",[crypto.randomUUID(),other.value.account.serverUserId]);
