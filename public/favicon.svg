@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" shape-rendering="crispEdges">
+<title>Invemon Private Wealth</title>
+<rect width="32" height="32" rx="6" fill="#07090F"/>
+<!-- Geometric gold W: two overlapping chevrons / folded ribbon -->
+<path fill="#C9A66B" d="M7 22 L11.2 9 L16 17.2 L20.8 9 L25 22 L22.4 22 L20.8 14.8 L16 23.2 L11.2 14.8 L9.6 22 Z"/>
+<path fill="#E8DCC8" opacity="0.95" d="M11.2 14.8 L16 23.2 L13.6 23.2 L11.2 14.8 Z"/>
+<path fill="#B8945A" d="M16 23.2 L20.8 14.8 L22.4 22 L16 23.2 Z" opacity="0.85"/>
+</svg>

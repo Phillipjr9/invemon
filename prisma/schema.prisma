@@ -1,0 +1,195 @@
+// prisma/schema.prisma — Invemon Private Wealth
+// SOLE OWNERSHIP: prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AccountType {
+  CASH
+  CRYPTO
+}
+
+enum TransactionType {
+  BUY
+  SELL
+  DCA
+  DEPOSIT
+  WITHDRAW
+  STAKING_DEPOSIT
+  STAKING_CLAIM
+  YIELD_PAYOUT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  name             String
+  passwordHash     String
+  role             UserRole @default(USER)
+  country          String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  kyc              Kyc?
+  accounts         Account[]
+  portfolios       Portfolio[]
+  holdings         Holding[]
+  transactions     Transaction[]
+  goals            Goal[]
+  copyFollowings    CopyFollowing[] @relation("Follower")
+  copyLeaders      CopyFollowing[] @relation("Leader")
+  sessions         Session[]
+  notifications    Notification[]
+}
+
+model Kyc {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      KycStatus @default(NOT_STARTED)
+  documents   Json      @default("[]") // [{type, url, originalName, mimeType}]
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  rejectionReason String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Account {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      AccountType
+  currency  String      // USD, USDT, ETH, BTC
+  balance   Decimal     @db.Decimal(20, 8) @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([userId, currency, type])
+}
+
+model Portfolio {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String    @default("Core Portfolio")
+  totalValue Decimal  @db.Decimal(20, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  holdings  Holding[]
+}
+
+model Holding {
+  id          String   @id @default(cuid())
+  userId      String
+  portfolioId String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolio   Portfolio? @relation(fields: [portfolioId], references: [id])
+  symbol      String
+  name        String
+  assetClass  String   // Stocks, ETFs, Bonds, Crypto
+  units       Decimal  @db.Decimal(20, 8)
+  avgCost     Decimal  @db.Decimal(20, 8)
+  currentPrice Decimal @db.Decimal(20, 8)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, symbol])
+}
+
+model Transaction {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        TransactionType
+  status      TransactionStatus @default(PENDING)
+  symbol      String?           // null for deposits/withdrawals
+  amount      Decimal           @db.Decimal(20, 2) // USD amount or quantity basis
+  units       Decimal?          @db.Decimal(20, 8)
+  price       Decimal?          @db.Decimal(20, 8)
+  meta        Json?             // { stopLoss, takeProfit, method, network, stakingPeriod, apy }
+  createdAt   DateTime          @default(now())
+}
+
+model Goal {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  target    Decimal  @db.Decimal(20, 2)
+  saved     Decimal  @db.Decimal(20, 2) @default(0)
+  dueYear   Int
+  monthly   Decimal  @db.Decimal(20, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CopyFollowing {
+  id         String   @id @default(cuid())
+  followerId String
+  leaderId   String
+  follower   User     @relation("Follower", fields: [followerId], references: [id])
+  leader     User     @relation("Leader", fields: [leaderId], references: [id])
+  allocated  Decimal  @db.Decimal(20, 2)
+  createdAt  DateTime @default(now())
+
+  @@unique([followerId, leaderId])
+}
+
+model StakingPosition {
+  id        String   @id @default(cuid())
+  userId    String
+  asset     String   // USDC, USDT
+  amount    Decimal  @db.Decimal(20, 8)
+  apy       Decimal  @db.Decimal(5, 2)
+  lockDays  Int
+  startAt   DateTime @default(now())
+  claimable Decimal  @db.Decimal(20, 8) @default(0)
+  status    String   @default("ACTIVE")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,13 @@
+
+> react-vite-tailwind@0.0.0 dev
+> vite --host 0.0.0.0
+
+
+  VITE v7.3.7  ready in 545 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://169.254.0.21:5173/
+3:35:21 PM [vite] (client) hmr update /src/index.css
+3:39:12 PM [vite] (client) hmr update /src/index.css
+3:39:13 PM [vite] (client) hmr update /src/components/Dialogs.tsx, /src/index.css
+3:39:13 PM [vite] (client) hmr update /src/index.css
