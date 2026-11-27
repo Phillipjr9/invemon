@@ -36,10 +36,20 @@ export default async function handler(req,res) {
   const user=await session(req);
   if(action==='request-verification') { await requestAccountLink(req,'verify',user.email,user);return res.status(200).json({ok:true}); }
   if(action==='logout-all') {await db()`DELETE FROM app_sessions WHERE user_id=${user.id}`;clearSession(res);return res.status(200).json({ok:true});}
+  if(action==='security-overview') {
+   const sql=db();
+   const sessions=await sql`SELECT created_at,expires_at,(token_hash=${user.token_hash}) AS current, count(*) OVER()::integer AS total FROM app_sessions WHERE user_id=${user.id} AND expires_at>now() ORDER BY created_at DESC LIMIT 20`;
+   const events=await sql`SELECT action,created_at FROM security_events WHERE user_id=${user.id} ORDER BY created_at DESC LIMIT 50`;
+   return res.status(200).json({sessions:sessions.map(({total,...entry})=>entry),sessionCount:sessions[0]?.total||0,events});
+  }
   if(action==='profile') {const data=profile(input);await db()`UPDATE app_users SET profile=${JSON.stringify(data)}::jsonb WHERE id=${user.id}`;await audit(user.id,'profile.updated');return res.status(200).json({account:account({...user,profile:data})});}
   if(action==='password' || action==='delete') {
    if(!await checkPassword(input.currentPassword,user.password_hash))throw new HttpError(401,'Current password not recognized.');
-   if(action==='delete') {await db()`DELETE FROM app_users WHERE id=${user.id}`;clearSession(res);return res.status(200).json({ok:true});}
+   if(action==='delete') {
+    try { await db()`DELETE FROM app_users WHERE id=${user.id}`; }
+    catch(error) { if(error.code==='23503')throw new HttpError(409,'This account has records that must be retained and cannot be deleted automatically. Contact support for an account closure review.');throw error; }
+    clearSession(res);return res.status(200).json({ok:true});
+   }
    const hash=await hashPassword(input.password);const sql=db();
    await sql.transaction([sql`UPDATE app_users SET password_hash=${hash} WHERE id=${user.id}`,sql`DELETE FROM app_sessions WHERE user_id=${user.id}`,sql`DELETE FROM account_action_tokens WHERE user_id=${user.id} AND purpose='reset'`,notificationInsert(sql,user.id,'password_changed',{name:user.profile.name})]);
    await attemptUserNotifications(user.id);
@@ -59,7 +69,7 @@ export default async function handler(req,res) {
    const emails=await db()`SELECT type,status,created_at,accepted_at FROM email_outbox WHERE user_id=${user.id} ORDER BY created_at DESC LIMIT 1000`;
    const supportMessages=await db()`SELECT m.id,m.request_id,m.actor_role,m.message,m.created_at FROM support_messages m JOIN support_requests r ON r.id=m.request_id WHERE r.user_id=${user.id} AND m.visibility='public' ORDER BY m.created_at DESC LIMIT 1000`;
    const preferences=await db()`SELECT sign_in,support_received,workspace_saved FROM email_preferences WHERE user_id=${user.id}`;
-   return res.status(200).json({supportMessages,emailHistory:emails,emailPreferences:preferences[0]||null,account:account(user),workspace:workspace[0]||null,events,tickets,notice:'Simulation data only. Not an investment statement or tax document.'});
+   return res.status(200).json({supportMessages,emailHistory:emails,emailPreferences:preferences[0]||null,account:account(user),workspace:workspace[0]||null,events,tickets,notice:'Account profile, support and security data. The workspace field is an archived simulation snapshot, not money or holdings. This export is not a financial or tax statement.'});
   }
   throw new HttpError(400,'Unsupported action. Live transfers and trading are not enabled.');
  } catch(error){return fail(res,error);}
