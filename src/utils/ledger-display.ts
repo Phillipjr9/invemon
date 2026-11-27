@@ -1,4 +1,4 @@
-export type LedgerBalance={asset:string;units:string;decimals:number};
+export type LedgerBalance={asset:string;units:string;decimals:number;reservedUnits?:string;unreservedUnits?:string};
 /** Exact atomic-unit display, without converting financial values to Number. */
 export function formatLedgerUnits(units:string,decimals:number){
  if(!/^-?\d+$/.test(units)||!Number.isInteger(decimals)||decimals<0||decimals>30)throw new Error('Invalid ledger amount');

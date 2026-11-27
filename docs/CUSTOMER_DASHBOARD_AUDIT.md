@@ -77,3 +77,9 @@ No new migration is required for this Settings rebuild. No production environmen
 - Additional tests cover cursor pagination, inaccessible cursors, split-journal ownership, exact amount display, individual session revocation, browser reload/back, activity export and unavailable chart handling.
 
 These changes require no new database migration beyond the already-required ledger migration 007. Trading, deposits, yields, recurring execution, goals, portfolio insights, account-performance charts, durable in-app notifications and secure self-service email changes remain unimplemented, not "fixed" by a UI label. Provider/compliance and operating requirements remain outstanding.
+
+## Internal funds safety follow-up
+
+Migration 008 now adds append-only owner/asset-bound fund reservations, held/unreserved balance breakdowns and atomic accounting debit finalization. Customer ledger debits cannot bypass those reservations. The migration runner publishes all numbered scripts atomically to avoid temporarily restoring older guards. See `FUND_RESERVATIONS.md`. Unlike the earlier UI changes, this follow-up DOES require a new migration, which must be applied before this version of the balance API is deployed.
+
+These are internal accounting primitives only. Customer/admin withdrawal and order request controllers, encrypted payout destinations, actual external execution and independent completion verification remain unimplemented and disabled. No provider configuration has been changed.
