@@ -1,3 +1,4 @@
+import './transaction-motion.css';
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../services/api';
 
@@ -32,11 +33,11 @@ export default function EmailNotifications({onDirtyChange}:{onDirtyChange?:(dirt
   setBusy(true);setNotice('');try{await load();}finally{setBusy(false);}
  }
 
- return <section className="db-card db-span-4"><div className="db-card-head"><h2>Email notifications</h2><span className="db-tag info">{data ? data.configured ? 'Provider configured' : 'Delivery not configured' : 'Account emails'}</span></div>
+ return <section className="db-card db-span-4 transaction-flow"><div className="db-card-head"><h2>Email notifications</h2><span className="db-tag info">{data ? data.configured ? 'Provider configured' : 'Delivery not configured' : 'Account emails'}</span></div>
   <p className="db-small db-muted">Choose useful account updates. Welcome, password-change, settled-trade and withdrawal status notices are transactional messages, not marketing. Email preferences are separate from in-app reminders.</p>
   {data && !data.configured && <p className="db-small" style={{marginTop:12}}>Delivery is off until your administrator configures a verified sender and email provider.</p>}
-  {error && <p role="alert" className="db-alert">{error}</p>}{notice && <p role="status" className="db-alert ok">{notice}</p>}
-  {!data&&!error&&<p role="status">Loading email preferences…</p>}
+  {error && <p role="alert" className="db-alert">{error}</p>}{notice && <p role="status" className="db-alert ok flow-success">{notice}</p>}
+  {!data&&!error&&<p className="flow-pending" role="status">Loading email preferences…</p>}
   {prefs && <fieldset disabled={busy} style={{border:0,padding:0,margin:'18px 0'}}><legend className="db-small">Optional account emails</legend>{([
    ['sign_in','New sign-ins','A notice when your password is used to sign in. Off by default.'],
    ['support_received','Support acknowledgments','A receipt reference when you submit a support request.'],
