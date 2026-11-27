@@ -24,3 +24,19 @@ Do not populate production quotes by copying displayed market prices, marking qu
 Apply numbered migrations through 013 before deploying. No hosted migrations/settings/deployment were performed here. Existing tables/views and money-service gates are unchanged. Old clients can still read their existing accounting records; `/api/orders` requires the new tables.
 
 Five local PGlite/API tests cover disabled public execution, no environment bypass, exact fee-inclusive reservation, retry conflicts, expired/foreign/mismatched quotes, overspending rollback, owner/password cancellation, immutable records and no fake journal/fill creation. Existing router test verifies one deployed function and protected order reads. HTTP-mocked browser suite checks ticket options, disabled quotes and 320–1440px layout. Hosted multi-connection races and real provider behavior remain untested.
+
+## Durable dispatch follow-up — migration 014
+
+Internal `server/order-dispatch.mjs` now implements dispatch/reconciliation orchestration for trusted adapter objects. No adapter is registered, scheduled worker added or public dispatch/ack endpoint exposed. Quotes/submission remain disabled.
+
+`claim_execution_dispatch` locks the same reservation header as cancellation, checks provider identity/current hold/quote expiry and commits an immutable dispatch intent with the order UUID as stable execution key. Only the first claimant may submit. Once an intent exists, local cancellation cannot release funds. A process crash before/after the external call leaves a dispatch-pending record for reconciliation, NOT an automatically retryable job.
+
+`dispatchOrder` calls a supplied trusted adapter's submit method once and records a submitted acknowledgement or an uncertain outcome. Submit exceptions and malformed acknowledgements keep funds held. Provider errors are not returned to customers. `reconcileOrderDispatch` performs a lookup with the same key; a not-found result remains unresolved rather than retrying submission or releasing money. Provider acknowledgements cannot conflict or be downgraded by a late uncertain event. Provider reference uniqueness is provider-scoped.
+
+Submitted means acknowledgement, NOT a fill. No holdings, ledger debits/credits or returns are created. Customer order history distinguishes queued/cancelled/dispatch-pending/uncertain/submitted and removes cancellation for dispatch-initiated records.
+
+Migration 014 supersedes migration 013's cancellation implementation and is required before deploying the updated order-status query. The full migration runner publishes the numbered schema atomically, preventing temporary publication of the old cancellation guard.
+
+This is a conservative dispatch-intent/recovery contract, not a complete outbox worker. Still missing: real adapter eligibility/quote/expiry validation, provider-side idempotency, lookup guarantees, scheduled worker/reconciliation queues, operator tooling, cancellation-at-provider, proven rejection handling and release, fill/partial-fill reconciliation, two-sided settlement accounting, custody-backed positions, provider security/reliability review and operational authorization. Until those exist, do not enable quote acceptance or use this module to send real orders. Funds can remain held indefinitely on unresolved outcomes; operational recovery must be implemented first.
+
+Six additional local tests cover stable-key one-time submission, timeout/lookup recovery, crash-after-claim handling, dispatch-versus-cancel ordering, provider mismatch, conflicting/late acknowledgements, immutable records and no public dispatch or fabricated fills. Adapters in tests are local test doubles only. Tests do not establish multi-connection correctness or real-provider exactly-once execution.

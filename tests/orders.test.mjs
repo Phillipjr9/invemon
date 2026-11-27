@@ -55,3 +55,42 @@ test('quotes/orders/history are immutable and no filled state can be inserted',a
  await assert.rejects(pg.query("INSERT INTO execution_order_events(order_id,sequence,state) VALUES($1,2,'filled')",[order]));
  assert.equal((await pg.query('SELECT count(*) FROM ledger_journals')).rows[0].count,1);
 });
+const {dispatchOrder,reconcileOrderDispatch}=await import('../server/order-dispatch.mjs');
+test('durable dispatch uses stable order key, submits once and never posts a fill',async()=>{
+ const id=await accept(await quote({units:'100',fee:'1'}));let submits=0;
+ const adapter={name:'test-only',submit:async input=>{submits++;assert.equal(input.executionKey,id);assert.equal(input.source_units,'100');return {providerOrderRef:'test-order-ack'};}};
+ assert.deepEqual(await dispatchOrder(id,adapter),{state:'submitted',filled:false});assert.equal((await dispatchOrder(id,adapter)).state,'already_claimed');assert.equal(submits,1);
+ assert.equal((await call()).body.orders.find(o=>o.id===id).state,'submitted');assert.equal((await pg.query('SELECT count(*) FROM ledger_journals')).rows[0].count,1);
+ assert.equal((await call({action:'cancel',id,currentPassword:password})).status,409);
+});
+test('timeout leaves funds held; retries never resubmit and lookup can reconcile',async()=>{
+ const id=await accept(await quote({units:'100',fee:'1'}));let submits=0;
+ const adapter={name:'test-only',submit:async()=>{submits++;throw new Error('PRIVATE-PROVIDER-SECRET');},lookup:async({executionKey})=>{assert.equal(executionKey,id);return null;}};
+ const before=await balance();assert.deepEqual(await dispatchOrder(id,adapter),{state:'uncertain',retrySubmission:false});assert.equal((await dispatchOrder(id,adapter)).state,'already_claimed');assert.equal(submits,1);assert.deepEqual(await balance(),before);
+ assert.equal((await reconcileOrderDispatch(id,adapter)).state,'unresolved');assert.equal((await call()).body.orders.find(o=>o.id===id).state,'uncertain');
+ adapter.lookup=async()=>({providerOrderRef:'reconciled-test-order'});assert.deepEqual(await reconcileOrderDispatch(id,adapter),{state:'submitted',filled:false});assert.equal((await call()).body.orders.find(o=>o.id===id).state,'submitted');
+ assert.equal((await call({action:'cancel',id,currentPassword:password})).status,409);
+});
+test('crash after claim stays pending and cannot be blindly resubmitted or cancelled',async()=>{
+ const id=await accept(await quote({units:'100',fee:'1'}));await pg.query('SELECT claim_execution_dispatch($1,$2)',[id,'test-only']);
+ const result=await dispatchOrder(id,{name:'test-only',submit:()=>assert.fail('must not submit again')});assert.equal(result.state,'already_claimed');assert.equal((await call()).body.orders.find(o=>o.id===id).state,'dispatch_pending');
+ assert.equal((await call({action:'cancel',id,currentPassword:password})).status,409);
+});
+test('cancellation before dispatch blocks external submission; wrong adapter cannot claim',async()=>{
+ const id=await accept(await quote({units:'100',fee:'1'}));
+ await assert.rejects(dispatchOrder(id,{name:'wrong-provider',submit:()=>assert.fail()}),/mismatch/);
+ await pg.query('SELECT cancel_execution_order($1,$2)',[id,user]);
+ await assert.rejects(dispatchOrder(id,{name:'test-only',submit:()=>assert.fail()}),/no longer dispatchable/);
+});
+test('conflicting acknowledgements fail, uncertain events cannot regress a submitted state',async()=>{
+ const id=await accept(await quote({units:'100',fee:'1'}));await dispatchOrder(id,{name:'test-only',submit:async()=>({providerOrderRef:'immutable-ack'})});
+ await pg.query('SELECT record_execution_dispatch($1,$2,$3,$4,$5)',[randomUUID(),id,'test-only','uncertain',null]);
+ assert.equal((await call()).body.orders.find(o=>o.id===id).state,'submitted');
+ await assert.rejects(pg.query('SELECT record_execution_dispatch($1,$2,$3,$4,$5)',[randomUUID(),id,'test-only','submitted','conflicting-ack']),/Conflicting/);
+ await assert.rejects(reconcileOrderDispatch(id,{name:'wrong-provider',lookup:async()=>({providerOrderRef:'fake'})}),/not found/);
+});
+test('dispatch records are append-only and public endpoints cannot dispatch or forge acks',async()=>{
+ for(const table of ['execution_dispatches','execution_dispatch_events'])await assert.rejects(pg.exec(`DELETE FROM ${table}`),/immutable/);
+ for(const action of ['dispatch','acknowledge','reconcile'])assert.equal((await call({action})).status,400);
+ assert.equal((await pg.query('SELECT count(*) FROM ledger_journals')).rows[0].count,1);
+});
