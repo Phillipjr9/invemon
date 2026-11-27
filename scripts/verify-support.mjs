@@ -7,6 +7,7 @@ try{
  const account={serverUserId:'customer',name:'Taylor',email:'taylor@example.com',plan:'Free',risk:'Balanced',country:'United States'};
  const ticket={id,subject:'Workspace question',message:'How can I load my saved workspace?',status:'open',revision:1,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
  const messages=[];let staff=false,conflict=false,submissions=[];
+ await page.route('**/api/inventory-trading',r=>r.fulfill({json:{enabled:false,pairs:[],trades:[]}}));
  await page.route('**/api/orders',r=>r.fulfill({json:{orders:[],accounts:[],executionEnabled:false,quoteEnabled:false}}));
  await page.route('**/api/activity**',r=>r.fulfill({json:{entries:[],nextCursor:null,unreadCount:'0'}}));
  await page.route('**/api/account',route=>route.fulfill({json:{account}}));

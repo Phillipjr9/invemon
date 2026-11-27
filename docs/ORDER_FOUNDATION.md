@@ -1,5 +1,7 @@
 # Order foundation — not live trading
 
+**Current customer crypto model:** see [Internal crypto trading](INTERNAL_CRYPTO_TRADING.md). Portfolio now uses the inventory-backed internal ticket, not the external-provider ticket described below. This older execution infrastructure stays disconnected and is not a requirement for internal trades.
+
 Migration **013_order_foundation.sql** adds internal immutable execution quotes, queued orders and cancellation history. Portfolio now has the buy/sell/swap ticket and order-history layout. The existing header Trade action opens Portfolio. All routes remain inside the one Vercel function.
 
 ## Implemented

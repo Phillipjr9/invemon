@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||undefined,args:['--no-sandbox']});
 try{
  const page=await browser.newPage({viewport:{width:1440,height:1050}}),errors=[];page.on('pageerror',e=>errors.push(e.message));let goals=[],failRead=false,conflict=false;
+ await page.route('**/api/inventory-trading',r=>r.fulfill({json:{enabled:false,pairs:[],trades:[]}}));
  await page.route('**/api/orders',r=>r.fulfill({json:{orders:[],accounts:[],executionEnabled:false,quoteEnabled:false}}));
  await page.route('**/api/activity**',r=>r.fulfill({json:{entries:[],nextCursor:null,unreadCount:'0'}}));
  await page.route('**/api/account',r=>r.fulfill({json:{account:{serverUserId:'goals-user',name:'Goal Owner',email:'goals@example.com',country:'United States',risk:'Balanced',plan:'Free'}}}));
