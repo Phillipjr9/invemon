@@ -1,6 +1,6 @@
 .asset-logo{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;vertical-align:middle;overflow:hidden;border-radius:50%;background:#fff;border:1px solid #e4e7e2;padding:6px;box-sizing:border-box}
 .asset-logo img{display:block;width:100%;height:100%;object-fit:contain;filter:none}
-.asset-logo-fallback{font:600 9px/1 'DM Sans',sans-serif;letter-spacing:-.3px;color:#46574c}
+.asset-logo-fallback{font:600 14px/1 'DM Sans',sans-serif;letter-spacing:-.3px;color:#46574c}
 .db-asset-link:has(>.asset-logo){display:grid;grid-template-columns:36px 1fr;column-gap:10px;text-align:left;align-items:center}
 .db-asset-link>.asset-logo{grid-row:1/3}
 .db-inspector-modal h2>.asset-logo{margin-right:10px}

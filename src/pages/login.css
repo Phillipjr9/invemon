@@ -59,7 +59,7 @@
   align-items: center;
   gap: 7px;
   color: #C7CEE0;
-  font-size: 13px;
+  font-size: 14px;
   transition: color 0.18s;
 }
 
@@ -84,7 +84,7 @@
   border-radius: 999px;
   background: rgba(201, 166, 107, 0.08);
   color: #E8DCC8;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -127,7 +127,7 @@
   max-width: 450px;
   margin-top: 16px;
   color: #A7B0C2;
-  font-size: 14.5px;
+  font-size: 16px;
   line-height: 1.7;
 }
 
@@ -159,7 +159,7 @@
   align-items: center;
   gap: 8px;
   color: #C7CEE0;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.04em;
 }
@@ -176,7 +176,7 @@
 .showcase-benchmark {
   color: #7F8AA3;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 14px;
 }
 
 .showcase-benchmark b {
@@ -200,7 +200,7 @@
 .showcase-balance > div > span {
   display: block;
   color: #8E99B2;
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -235,14 +235,14 @@
   background: rgba(201, 166, 107, 0.14);
   color: #E8DCC8;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
 }
 
 .showcase-range {
   color: #6E7891;
-  font-size: 10.5px;
+  font-size: 14px;
 }
 
 .showcase-tabs {
@@ -257,7 +257,7 @@
   border-radius: 8px;
   color: #8E99B2;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
   transition: background 0.18s, color 0.18s;
 }
@@ -275,7 +275,7 @@
 .showcase-updated {
   margin-left: auto;
   color: #5F6A84;
-  font-size: 10.5px;
+  font-size: 14px;
 }
 
 .showcase-chart {
@@ -323,13 +323,13 @@
   display: block;
   color: #F4F0E6;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .showcase-tip span {
   color: #8E99B2;
-  font-size: 10.5px;
+  font-size: 14px;
 }
 
 .showcase-xlabels {
@@ -338,7 +338,7 @@
   padding: 2px 18px 14px;
   color: #5F6A84;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 14px;
 }
 
 .showcase-stats {
@@ -358,7 +358,7 @@
 .showcase-stats span {
   display: block;
   color: #7F8AA3;
-  font-size: 10.5px;
+  font-size: 14px;
 }
 
 .showcase-stats strong {
@@ -366,7 +366,7 @@
   margin-top: 3px;
   color: #F4F0E6;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -409,7 +409,7 @@
   background: #1A2332;
   color: #E8DCC8;
   font-family: Inter, sans-serif;
-  font-size: 9px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -442,7 +442,7 @@
 .showcase-holding-meta strong {
   display: block;
   color: #EDF0F7;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -450,7 +450,7 @@
   display: block;
   margin-top: 1px;
   color: #7F8AA3;
-  font-size: 10.5px;
+  font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -470,14 +470,14 @@
   display: block;
   color: #F4F0E6;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .showcase-holding-right em {
   font-style: normal;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 14px;
 }
 
 .showcase-holding-right em.is-up { color: #9DC08B; }
@@ -507,7 +507,7 @@
   gap: 6px 14px;
   margin-top: 9px;
   color: #8E99B2;
-  font-size: 10.5px;
+  font-size: 14px;
 }
 
 .showcase-alloc-legend span {
@@ -526,7 +526,7 @@
   color: #D8DEF2;
   font-weight: 500;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 14px;
 }
 
 .showcase-activity {
@@ -544,7 +544,7 @@
   align-items: center;
   gap: 9px;
   color: #A7B0C2;
-  font-size: 11px;
+  font-size: 14px;
 }
 
 .showcase-activity .dot {
@@ -567,7 +567,7 @@
   margin-top: auto;
   padding-top: 34px;
   color: #7E89A3;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .login-panel-footer span:first-child {
@@ -609,7 +609,7 @@
 .login-welcome {
   margin-bottom: 9px;
   color: #96723A;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -625,7 +625,7 @@
 .login-lede {
   margin-top: 10px;
   color: #667085;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
 }
 
@@ -652,7 +652,7 @@
   border-radius: 10px;
   background: #FFFFFF;
   color: #182230;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
 }
@@ -669,7 +669,7 @@
   gap: 14px;
   margin: 22px 0;
   color: #98A2B3;
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0.02em;
 }
 
@@ -694,7 +694,7 @@
 .login-field > label,
 .login-label-row label {
   color: #344054;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -707,7 +707,7 @@
   border-radius: 10px;
   background: #FFFFFF;
   color: #101828;
-  font-size: 14px;
+  font-size: 16px;
   transition: border-color 0.18s, box-shadow 0.18s;
 }
 
@@ -730,7 +730,7 @@
 
 .login-text-link {
   color: #8B6930;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -777,7 +777,7 @@
   gap: 9px;
   width: fit-content;
   color: #475467;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -800,7 +800,7 @@
   border-radius: 10px;
   background: #07090F;
   color: #F4F0E6;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   transition: background 0.18s, border-color 0.18s, transform 0.16s;
 }
@@ -819,7 +819,7 @@
   display: block;
   margin: 18px auto 0;
   color: #6B7280;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .login-code-link:hover {
@@ -837,7 +837,7 @@
   padding-top: 22px;
   border-top: 1px solid #E7E1D3;
   color: #667085;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .login-create-account button {
@@ -858,7 +858,7 @@
   gap: 7px;
   margin-top: 18px;
   color: #98A2B3;
-  font-size: 11.5px;
+  font-size: 14px;
   text-align: center;
 }
 
@@ -869,7 +869,7 @@
   margin-top: 18px;
   padding: 11px 13px;
   border-radius: 10px;
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.5;
 }
 
@@ -888,7 +888,7 @@
 .login-preview-note {
   margin-top: 16px;
   color: #8B6930;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .login-preview-note strong {
@@ -901,7 +901,7 @@
   gap: 7px;
   margin-bottom: 26px;
   color: #667085;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -956,7 +956,7 @@
 
 .login-inline-actions button {
   color: #8B6930;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -1009,7 +1009,7 @@
 .login-microcopy,
 .login-strength {
   color: #8A94A6;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.55;
 }
 
@@ -1052,7 +1052,7 @@
 .login-processing > p {
   margin-top: 9px;
   color: #667085;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .login-processing-steps {
@@ -1070,7 +1070,7 @@
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.62);
   color: #98A2B3;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .login-processing-steps div.is-done {
@@ -1089,7 +1089,7 @@
   gap: 20px;
   margin-top: 44px;
   color: #98A2B3;
-  font-size: 11.5px;
+  font-size: 14px;
 }
 
 .login-google-custom {
@@ -1102,7 +1102,7 @@
 
 .login-google-custom label {
   color: #344054;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -1114,7 +1114,7 @@
   border-radius: 10px;
   background: #FFFFFF;
   color: #07090F;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 @media (max-width: 1020px) {
@@ -1135,7 +1135,7 @@
   }
 
   .login-panel-copy > span {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .login-preview {

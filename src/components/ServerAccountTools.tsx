@@ -1,55 +1,59 @@
+import DisplayPreferences from './DisplayPreferences';
 import AuthenticatorSecurity from './AuthenticatorSecurity';
-import { useState, type FormEvent } from 'react';
-import type { InvestmentAccount } from './Dialogs';
-import { accountAction, downloadJson } from '../services/api';
-import { COUNTRIES, RISK_BLUEPRINTS } from '../services/auth';
+import EmailNotifications from './EmailNotifications';
+import Icon from './Icon';
+import {useEffect,useState,type FormEvent} from 'react';
+import type {InvestmentAccount} from './Dialogs';
+import {accountAction,api,downloadJson} from '../services/api';
+import {COUNTRIES,RISK_BLUEPRINTS} from '../services/auth';
+import './account-settings.css';
 
-type Props = { account: InvestmentAccount; onAccount: (account: InvestmentAccount | null) => void; onSignedOut: () => void };
-export default function ServerAccountTools({ account, onAccount, onSignedOut }: Props) {
- const [busy, setBusy] = useState(false), [notice, setNotice] = useState(''), [error, setError] = useState('');
- async function run(work: () => Promise<void>) { if (busy) return; setBusy(true); setError(''); setNotice(''); try { await work(); } catch (err) { setError(err instanceof Error ? err.message : 'Request failed.'); } finally { setBusy(false); } }
- function submit(event: FormEvent<HTMLFormElement>, action: string) {
-  event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget));
-  if (action === 'delete' && !window.confirm('Permanently delete eligible account data, sessions, and support requests? Records subject to retention may prevent deletion. This cannot be undone.')) return;
-  void run(async () => {
-   const result = await accountAction(action, data);
-   if (action === 'profile' && result.account) { onAccount(result.account); setNotice('Profile saved. This does not place orders or change an investment allocation.'); }
-   if (action === 'password' || action === 'delete') {
-    if (action === 'delete') { try { localStorage.removeItem(`invemon-dashboard:${account.email}`); localStorage.removeItem(`invemon-crypto-watchlist:${account.email.toLowerCase()}`); } catch { /* Cloud data is already deleted. */ } }
-    onAccount(null); onSignedOut();
-   }
-   if (action === 'support') setNotice(`Support request saved: ${result.id}. ${result.emailStatus || 'Email acknowledgment status is available in Email notifications.'} This is not an emergency support channel.`);
-  });
- }
- return <section className="db-card db-span-4"><div className="db-card-head"><h2>Account &amp; security</h2></div>
-  <p className="db-small db-muted">Signed in as {account.email}. Email {account.emailVerified ? 'verified' : 'unverified'}. Live investing is disabled. Never submit identity documents, card details, or wallet secrets.</p>
-  {error && <p role="alert" className="db-alert">{error}</p>}{notice && <p role="status" className="db-alert ok">{notice}</p>}
-  <fieldset disabled={busy} style={{ border: 0, padding: 0, marginTop: 20 }}>
-   {!account.emailVerified && <button type="button" className="db-btn" onClick={() => void run(async () => { await accountAction('request-verification'); setNotice('Verification link requested. If delivery succeeds, check your inbox. Links expire in 30 minutes.'); })}>Send email verification link</button>}
-   <form className="dialog-form" onSubmit={event => submit(event, 'profile')}>
-    <label className="db-field">Full name<input name="name" defaultValue={account.name} required minLength={2} maxLength={100} autoComplete="name" /></label>
-    <label className="db-field">Country<select name="country" defaultValue={account.country || 'United States'}>{COUNTRIES.map(country => <option key={country}>{country}</option>)}</select></label>
-    <label className="db-field">Risk profile<select name="risk" defaultValue={account.risk || 'Balanced'}>{RISK_BLUEPRINTS.map(risk => <option key={risk.id}>{risk.id}</option>)}</select></label>
-    <input type="hidden" name="goal" value={account.goal || ''} /><input type="hidden" name="monthlyAmount" value={account.monthlyAmount || '250'} />
-    <button className="db-btn" type="submit">Save profile</button>
-   </form>
-   <AuthenticatorSecurity account={account} onAccount={onAccount} />
-   <details style={{ marginTop: 20 }}><summary>Change password</summary><form className="dialog-form" onSubmit={event => submit(event, 'password')}>
-    <label className="db-field">Current password<input type="password" name="currentPassword" required autoComplete="current-password" maxLength={128} /></label>
-    <label className="db-field">New password<input type="password" name="password" required minLength={12} maxLength={128} autoComplete="new-password" /></label>
-    <p className="db-small db-muted">Changing your password signs out all devices, including this one.</p><button className="db-btn" type="submit">Change password &amp; sign out</button>
-   </form></details>
-   <div className="db-btn-row" style={{ marginTop: 20 }}>
-    <button type="button" className="db-btn" onClick={() => void run(async () => { await accountAction('logout-all'); onAccount(null); onSignedOut(); })}>Sign out all devices</button>
-    <button type="button" className="db-btn" onClick={() => void run(async () => { const data = await accountAction('export'); downloadJson('invemon-account-export.json', data); setNotice('Account export downloaded. This is not a financial or tax statement.'); })}>Export account data</button>
-   </div>
-   <div style={{ marginTop: 20 }}><a className="db-btn" href="#support">View support requests &amp; replies</a></div>
-   <details style={{ marginTop: 20 }}><summary>Contact support</summary><form className="dialog-form" onSubmit={event => submit(event, 'support')}>
-    <label className="db-field">Subject<input name="subject" required minLength={3} maxLength={120} /></label><label className="db-field">Message<textarea name="message" required minLength={10} maxLength={4000} /></label><button type="submit" className="db-btn">Submit support request</button>
-   </form></details>
-   <details style={{ marginTop: 20 }}><summary>Delete account permanently</summary><form className="dialog-form" onSubmit={event => submit(event, 'delete')}>
-    <label className="db-field">Confirm current password<input name="currentPassword" type="password" required maxLength={128} autoComplete="current-password" /></label><button type="submit" className="db-btn">Delete eligible account data</button>
-   </form></details>
-  </fieldset>
- </section>;
+type Props={account:InvestmentAccount;onAccount:(account:InvestmentAccount|null)=>void;onSignedOut:()=>void;onDirtyChange?:(dirty:boolean)=>void;hideBalances?:boolean;onHideBalancesChange?:(hidden:boolean)=>void};
+type Section='profile'|'security'|'notifications'|'appearance'|'privacy';
+type SecurityOverview={sessions:{id:string;created_at:string;expires_at:string;current:boolean}[];sessionCount:number;events:{action:string;created_at:string}[]};
+const tabs:{id:Section;name:string;icon:string;description:string}[]=[
+ {id:'profile',name:'Personal profile',icon:'user',description:'Your details and email verification.'},
+ {id:'security',name:'Security',icon:'lock',description:'Password, authenticator and sign-in sessions.'},
+ {id:'notifications',name:'Notifications',icon:'bell',description:'Choose your account emails.'},
+ {id:'appearance',name:'Appearance',icon:'eye',description:'Make your workspace comfortable to use.'},
+ {id:'privacy',name:'Data & privacy',icon:'layers',description:'Download your information or request account deletion.'},
+];
+const when=(date:string)=>new Date(date).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});
+export default function ServerAccountTools({account,onAccount,onSignedOut,onDirtyChange,hideBalances=false,onHideBalancesChange}:Props){
+ const [section,setSection]=useState<Section>('profile');
+ const [busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[error,setError]=useState('');
+ const [name,setName]=useState(account.name),[country,setCountry]=useState(account.country||''),[risk,setRisk]=useState(account.risk||'');
+ const [emailDirty,setEmailDirty]=useState(false);
+ const [confirmation,setConfirmation]=useState(''),[deletePassword,setDeletePassword]=useState('');
+ const [security,setSecurity]=useState<SecurityOverview|null>(null),[securityError,setSecurityError]=useState(''),[reload,setReload]=useState(0);
+ const dirty=name!==account.name||country!==(account.country||'')||risk!==(account.risk||'');
+ useEffect(()=>{setName(account.name);setCountry(account.country||'');setRisk(account.risk||'');},[account.name,account.country,account.risk]);
+ useEffect(()=>{onDirtyChange?.(dirty||emailDirty);},[dirty,emailDirty,onDirtyChange]);
+ useEffect(()=>()=>onDirtyChange?.(false),[onDirtyChange]);
+ useEffect(()=>{if(!dirty&&!emailDirty)return;const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue='';};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[dirty,emailDirty]);
+ useEffect(()=>{if(section!=='security')return;let active=true;setSecurity(null);setSecurityError('');void api<SecurityOverview>('account','POST',{action:'security-overview'}).then(value=>{if(active)setSecurity(value);}).catch(err=>{if(active)setSecurityError(err instanceof Error?err.message:'Unable to load security information.');});return()=>{active=false;};},[section,reload]);
+ async function run(work:()=>Promise<void>){if(busy)return;setBusy(true);setError('');setNotice('');try{await work();}catch(err){setError(err instanceof Error?err.message:'Request failed. Please try again.');}finally{setBusy(false);}}
+ function navigate(next:Section){if(busy||next===section)return;if((dirty||emailDirty)&&!window.confirm('Discard your unsaved settings changes?'))return;setName(account.name);setCountry(account.country||'');setRisk(account.risk||'');setSection(next);setNotice('');setError('');setDeletePassword('');setConfirmation('');}
+ function saveProfile(event:FormEvent<HTMLFormElement>){event.preventDefault();void run(async()=>{const result=await accountAction('profile',{name,country,risk,goal:account.goal||'',monthlyAmount:account.monthlyAmount||'0'});if(!result.account)throw new Error('Your profile could not be confirmed. Please retry.');onAccount(result.account);setNotice('Profile saved. This does not place orders or change an investment allocation.');});}
+ function changePassword(event:FormEvent<HTMLFormElement>){event.preventDefault();const form=event.currentTarget;const data=Object.fromEntries(new FormData(form));if(data.password!==data.confirmPassword){setError('New passwords do not match.');return;}void run(async()=>{try{await accountAction('password',{currentPassword:data.currentPassword,password:data.password});onAccount(null);onSignedOut();}finally{form.reset();}});}
+ function deleteAccount(event:FormEvent<HTMLFormElement>){event.preventDefault();if(confirmation!==account.email){setError('Enter your account email exactly to confirm deletion.');return;}if(!window.confirm('Delete eligible account data permanently? This cannot be undone. Records requiring retention may prevent deletion.'))return;void run(async()=>{try{await accountAction('delete',{currentPassword:deletePassword});try{localStorage.removeItem(`invemon-crypto-favorites:${account.serverUserId}`);localStorage.removeItem(`invemon-dashboard:${account.email}`);localStorage.removeItem(`invemon-hide-balances:${account.serverUserId}`);localStorage.removeItem(`invemon-crypto-watchlist:${account.email.toLowerCase()}`);}catch{/* Optional local preference cleanup. */}onAccount(null);onSignedOut();}finally{setDeletePassword('');}});}
+ const selected=tabs.find(tab=>tab.id===section)!;
+ return <section className="settings-workspace" aria-label="Account settings workspace">
+ <header className="settings-intro"><div><span className="settings-eyebrow">MAKE YOURSELF AT HOME</span><h2>Account &amp; security</h2><p>Your details, your preferences, your peace of mind.</p></div><span className={`settings-badge ${account.emailVerified?'verified':''}`}><Icon name={account.emailVerified?'check':'mail'} size={17}/>{account.emailVerified?'Email verified':'Verify your email'}</span></header>
+ <div className="settings-layout"><nav className="settings-nav" aria-label="Settings sections">{tabs.map(tab=><button type="button" key={tab.id} disabled={busy} aria-current={section===tab.id?'page':undefined} className={section===tab.id?'selected':''} onClick={()=>navigate(tab.id)}><Icon name={tab.icon} size={20}/><span>{tab.name}</span><Icon name="chevron" size={14}/></button>)}<a href="#support"><Icon name="mail" size={20}/> Need a hand?</a></nav>
+ <div className="settings-panel" aria-label={selected.name} aria-busy={busy}><div className="settings-panel-heading"><h3>{selected.name}</h3><p>{selected.description}</p></div>
+ {error&&<p role="alert" className="db-alert">{error}</p>}{notice&&<p role="status" className="db-alert ok">{notice}</p>}
+ {section==='profile'&&<><div className="settings-identity"><span className="settings-avatar" aria-hidden="true">{account.name.slice(0,1).toUpperCase()}</span><div><strong>{account.name}</strong><span>{account.email}</span></div></div><div className="settings-email"><div><strong>Email address</strong><p>{account.email}</p><small>Your sign-in address. Contact support if you need to change it.</small></div>{!account.emailVerified&&<button type="button" className="db-btn" disabled={busy} onClick={()=>void run(async()=>{await accountAction('request-verification');setNotice('Verification link requested. If delivery succeeds, check your inbox. Links expire in 30 minutes.');})}>Send email verification link</button>}</div>
+ <form className="settings-form" onSubmit={saveProfile}><fieldset disabled={busy}><legend className="settings-sr-only">Personal details</legend><div className="settings-form-grid"><label>Full name<input name="name" value={name} onChange={e=>setName(e.target.value)} required minLength={2} maxLength={100} autoComplete="name"/></label><label>Country of residence<select name="country" value={country} onChange={e=>setCountry(e.target.value)} required autoComplete="country-name"><option value="" disabled>Select your country</option>{!COUNTRIES.includes(country)&&country&&<option>{country}</option>}{COUNTRIES.map(value=><option key={value}>{value}</option>)}</select></label></div><label>Risk profile<select name="risk" value={risk} onChange={e=>setRisk(e.target.value)} required><option value="" disabled>Select your preference</option>{RISK_BLUEPRINTS.map(value=><option key={value.id}>{value.id}</option>)}</select></label><p className="settings-hint">A planning preference only. This does not open an investment account, place orders or change an allocation.</p><div className="settings-form-actions"><span>{dirty?'You have unsaved changes.':'Your profile is up to date.'}</span><button className="db-btn lime" type="submit" disabled={busy||!dirty}>{busy?'Saving…':'Save profile'}</button></div></fieldset></form></>}
+ {section==='security'&&<><div className="settings-security-summary"><div><Icon name="mail" size={22}/><strong>Email verification</strong><span>{account.emailVerified?'Verified':'Not verified'}</span></div><div><Icon name="lock" size={22}/><strong>Authenticator</strong><span>{account.mfaEnabled?'Enabled':'Not enabled'}</span></div></div><div className="settings-block"><AuthenticatorSecurity account={account} onAccount={onAccount}/></div>
+ <details className="settings-block"><summary>Change password</summary><form className="settings-form" onSubmit={changePassword}><fieldset disabled={busy}><label>Current password<input type="password" name="currentPassword" autoComplete="current-password" required maxLength={128}/></label><label>New password<input type="password" name="password" autoComplete="new-password" required minLength={12} maxLength={128}/></label><label>Confirm new password<input type="password" name="confirmPassword" autoComplete="new-password" required minLength={12} maxLength={128}/></label><p className="settings-hint">Use 12–128 characters. Updating your password signs out every session, including this one.</p><button className="db-btn" type="submit">Change password &amp; sign out</button></fieldset></form></details>
+ <section className="settings-block"><div className="settings-row"><h4>Sign-in sessions</h4><button className="db-btn ghost" type="button" onClick={()=>setReload(v=>v+1)}>Refresh sessions</button></div><p>Active sign-ins, not a device inventory. Device names and locations are not collected here.</p>{securityError?<div role="alert"><p>{securityError}</p><button type="button" className="db-btn" onClick={()=>setReload(v=>v+1)}>Retry security overview</button></div>:!security?<p role="status">Loading sign-in sessions…</p>:<><p>{security.sessionCount} active {security.sessionCount===1?'session':'sessions'} · showing up to 20</p><ul className="settings-session-list">{security.sessions.map((s,i)=><li key={`${s.created_at}-${i}`}><Icon name="lock" size={18}/><div><strong>{s.current?'This session':'Other session'}</strong><span>Signed in {when(s.created_at)}</span><small>Expires {when(s.expires_at)}</small></div><button type="button" className="db-btn ghost" disabled={busy} aria-label={s.current?'Sign out this session':`Sign out session started ${when(s.created_at)}`} onClick={()=>{if(window.confirm(s.current?'Sign out this session?':'Sign out this other session?'))void run(async()=>{const result=await api<{signedOut:boolean}>('account','POST',{action:'revoke-session',sessionId:s.id});if(result.signedOut){onAccount(null);onSignedOut();}else{setNotice('Session signed out.');setReload(v=>v+1);}});}}>Sign out</button></li>)}</ul></>}
+ <button type="button" className="db-btn" disabled={busy} onClick={()=>{if(window.confirm('Sign out every session, including this one?'))void run(async()=>{await accountAction('logout-all');onAccount(null);onSignedOut();});}}>Sign out all devices</button></section>
+ <details className="settings-block"><summary>Recent security activity</summary>{securityError?<p>Security activity is unavailable. Retry the security overview above.</p>:!security?<p>Loading security activity…</p>:security.events.length?<ul className="settings-session-list">{security.events.map((entry,i)=><li key={`${entry.created_at}-${i}`}><div><strong>{entry.action.split('.').join(' · ')}</strong><span>{when(entry.created_at)}</span></div></li>)}</ul>:<p>No security activity recorded. Up to 50 recent events are shown.</p>}</details></>}
+ {section==='notifications'&&<EmailNotifications onDirtyChange={setEmailDirty}/>}
+ {section==='appearance'&&<DisplayPreferences hidden={hideBalances} onHidden={value=>onHideBalancesChange?.(value)}/>}
+ {section==='privacy'&&<><section className="settings-block"><h4>A copy of your information</h4><p>Download your profile, support conversations, email history and recorded security activity. Any archived simulation snapshot is identified as historical data, not money. This is not a financial or tax statement.</p><button type="button" className="db-btn" disabled={busy} onClick={()=>void run(async()=>{const data=await accountAction('export');downloadJson('invemon-account-export.json',data);setNotice('Account export downloaded. This is not a financial or tax statement.');})}><Icon name="download" size={17}/> Export account data</button></section>
+ <section className="settings-block"><h4>Your display preferences</h4><p>Use the light/dark control to change this device’s theme. The eye control in the dashboard header hides displayed balances. Your crypto watchlist is stored on this browser separately from your financial records.</p></section>
+ <section className="settings-danger"><h4>Delete account permanently</h4><p>Eligible account data can be deleted. Financial and other records requiring retention can prevent automatic deletion. Contact support for an account closure review if needed.</p><details><summary>Review account deletion</summary><form className="settings-form" onSubmit={deleteAccount}><fieldset disabled={busy}><label>Confirm account email<input type="email" value={confirmation} onChange={e=>setConfirmation(e.target.value)} required autoComplete="off" spellCheck={false}/></label><label>Confirm current password<input type="password" value={deletePassword} onChange={e=>setDeletePassword(e.target.value)} required maxLength={128} autoComplete="current-password"/></label><button type="submit" className="db-btn settings-delete" disabled={busy||confirmation!==account.email}>Delete eligible account data</button></fieldset></form></details></section></>}
+ </div></div></section>;
 }

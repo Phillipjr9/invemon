@@ -53,7 +53,7 @@
   background: #f2f8e4;
   border: 1px solid #d5eab0;
   color: #3d630d;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -77,7 +77,7 @@
   gap: 5px;
   padding: 7px 10px;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 14px;
   color: #3c4252;
   white-space: nowrap;
   transition: background 0.18s, color 0.18s;
@@ -117,7 +117,7 @@
   background: white;
   border: 1px solid #dfe4f0;
   color: #778091;
-  font-size: 12px;
+  font-size: 14px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .db-cmd-trigger:hover {
@@ -135,7 +135,7 @@
   background: #f2f4f9;
   color: #5b6475;
   font-family: Inter, sans-serif;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -148,7 +148,7 @@
   border-radius: 999px;
   background: var(--lime);
   color: var(--navy);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
   transition: transform 0.18s, background 0.18s;
@@ -181,12 +181,12 @@
   line-height: 1.15;
 }
 .db-user-meta strong {
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--ink);
 }
 .db-user-meta small {
-  font-size: 10.5px;
+  font-size: 14px;
   color: #747d8c;
 }
 
@@ -210,13 +210,13 @@
 }
 .db-user-dropdown-head strong {
   display: block;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--ink);
 }
 .db-user-dropdown-head small {
   display: block;
   margin: 2px 0 8px;
-  font-size: 11.5px;
+  font-size: 14px;
   color: #737b8c;
   overflow-wrap: anywhere;
 }
@@ -227,7 +227,7 @@
   width: 100%;
   padding: 10px 11px;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 14px;
   color: #2f3645;
   text-align: left;
 }
@@ -280,7 +280,7 @@
 }
 .db-side-heading {
   padding: 4px 12px 10px;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.14em;
   color: #7e8ab0;
@@ -291,7 +291,7 @@
   gap: 12px;
   padding: 11px 13px;
   border-radius: 13px;
-  font-size: 13.5px;
+  font-size: 14px;
   color: #c2c8dc;
   text-align: left;
   transition: background 0.18s, color 0.18s;
@@ -315,7 +315,7 @@
 }
 .db-side-yield-card span {
   display: block;
-  font-size: 11px;
+  font-size: 14px;
   color: #b4bdd9;
 }
 .db-side-yield-card strong {
@@ -328,12 +328,12 @@
 }
 .db-side-yield-card small {
   display: block;
-  font-size: 11px;
+  font-size: 14px;
   color: #9ca7c9;
 }
 .db-side-yield-card button {
   margin-top: 10px;
-  font-size: 11.5px;
+  font-size: 14px;
   color: #d9f39c;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -354,7 +354,7 @@
 }
 .db-subbar-crumb {
   display: block;
-  font-size: 11.5px;
+  font-size: 14px;
   color: #747e91;
   margin-bottom: 3px;
 }
@@ -393,7 +393,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0.1em;
   color: #aab3cf;
 }
@@ -413,7 +413,7 @@
   max-width: 350px;
   margin: -3px 0 13px;
   color: #b6bfd3;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .db-wealth-pills {
@@ -426,7 +426,7 @@
   align-items: center;
   padding: 5px 11px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
 }
 .db-hero-pill.up {
@@ -451,7 +451,7 @@
 }
 .db-wealth-metrics span {
   display: block;
-  font-size: 11.5px;
+  font-size: 14px;
   color: #a6b0cf;
 }
 .db-wealth-metrics strong {
@@ -471,7 +471,7 @@
   color: #ff9c9c;
 }
 .db-wealth-metrics small {
-  font-size: 11px;
+  font-size: 14px;
   color: #8f99ba;
 }
 
@@ -484,7 +484,7 @@
   width: 100%;
   min-height: 42px;
   padding: 9px 18px;
-  font-size: 13.5px;
+  font-size: 14px;
   border-radius: 14px;
 }
 .db-hero-ghost {
@@ -497,7 +497,7 @@
   border-radius: 12px;
   border: 1px solid #354379;
   color: #d7def4;
-  font-size: 12.5px;
+  font-size: 14px;
   transition: background 0.18s;
 }
 .db-hero-ghost:hover {
@@ -526,7 +526,7 @@
   flex-wrap: wrap;
   gap: 18px;
   margin-top: 10px;
-  font-size: 11.5px;
+  font-size: 14px;
   color: #b7c0dc;
 }
 .db-wealth-bar-legend span {
@@ -575,7 +575,7 @@
   border-radius: 50%;
   background: var(--lime);
   color: var(--navy);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -585,7 +585,7 @@
   background: #fff7e8;
   border: 1px solid #f2c46d;
   color: #6b4300;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.65;
 }
 .db-grid {
@@ -620,12 +620,12 @@
   margin-bottom: 16px;
 }
 .db-muted { color: #737681; }
-.db-small { font-size: 12px; line-height: 1.5; }
+.db-small { font-size: 14px; line-height: 1.5; }
 .db-pos { color: #3d6b0a; }
 .db-neg { color: #b42318; }
 
 .db-kpi span {
-  font-size: 12.5px;
+  font-size: 14px;
   color: #737681;
 }
 .db-kpi strong {
@@ -637,7 +637,7 @@
   color: var(--navy);
 }
 .db-kpi small {
-  font-size: 12px;
+  font-size: 14px;
   color: #737681;
 }
 
@@ -652,7 +652,7 @@
 .db-seg button {
   padding: 7px 12px;
   border-radius: 9px;
-  font-size: 12.5px;
+  font-size: 14px;
   color: #4a4f5c;
 }
 .db-seg button:hover {
@@ -685,7 +685,7 @@
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 .db-chart-plot {
@@ -700,7 +700,7 @@
 .db-chart-legend {
   display: flex;
   gap: 18px;
-  font-size: 12px;
+  font-size: 14px;
   color: #737681;
   margin-top: 8px;
   flex-wrap: wrap;
@@ -740,7 +740,7 @@
 }
 .db-bar-val {
   font-family: Inter, sans-serif;
-  font-size: 11px;
+  font-size: 14px;
   color: #6c7486;
 }
 .db-bar-stack {
@@ -763,7 +763,7 @@
 .db-bar-seg.cash-yield { background: #ace238; }
 .db-bar-lbl {
   padding-bottom: 8px;
-  font-size: 12px;
+  font-size: 14px;
   color: #737a8c;
 }
 
@@ -781,7 +781,7 @@
   padding: 13px;
   border-radius: 14px;
   background: #f5f7fc;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--navy);
   text-align: left;
@@ -837,7 +837,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 13px;
+  font-size: 14px;
 }
 .db-legend li {
   display: grid;
@@ -883,7 +883,7 @@
   border-radius: 14px;
   background: #fff7e8;
   color: #6b4300;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
 }
 .db-alert.ok {
@@ -895,7 +895,7 @@
   align-items: center;
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 11.5px;
+  font-size: 14px;
   font-weight: 500;
   background: #f3fbe2;
   color: #3d6b0a;
@@ -930,7 +930,7 @@
   gap: 7px;
   padding: 9px 14px;
   border-radius: 12px;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
   background: var(--navy);
   color: white;
@@ -979,14 +979,14 @@
 }
 .db-list strong {
   display: block;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--ink);
 }
 .db-list small {
   display: block;
   margin-top: 2px;
-  font-size: 12px;
+  font-size: 14px;
   color: #737681;
 }
 .db-asset-link {
@@ -1001,18 +1001,18 @@
 .db-alert-dot {
   color: #8dc11c;
   font-style: normal;
-  font-size: 11px;
+  font-size: 14px;
 }
 .db-num {
   text-align: right;
   font-family: Inter, sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--ink);
   white-space: nowrap;
 }
 .db-num small {
   display: block;
-  font-size: 12px;
+  font-size: 14px;
 }
 .db-spark {
   width: 84px;
@@ -1041,7 +1041,7 @@
   border: 0;
   outline: 0;
   background: transparent;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink);
   width: 180px;
 }
@@ -1050,11 +1050,11 @@
 .db-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .db-table th {
   padding: 10px;
-  font-size: 11.5px;
+  font-size: 14px;
   font-weight: 500;
   text-align: left;
   color: #737681;
@@ -1073,7 +1073,7 @@
   color: var(--ink);
 }
 .db-table td small {
-  font-size: 12px;
+  font-size: 14px;
   color: #737681;
 }
 .db-class-head {
@@ -1086,13 +1086,13 @@
   margin-bottom: 6px;
   border-radius: 14px;
   background: #f7f9fd;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--ink);
   text-align: left;
 }
 .db-class-head small {
   display: block;
-  font-size: 12px;
+  font-size: 14px;
   color: #737681;
 }
 .db-class-group { margin-bottom: 14px; }
@@ -1145,19 +1145,19 @@
 .db-setting:last-child { border-bottom: 0; }
 .db-setting strong {
   display: block;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--ink);
 }
 .db-setting small {
-  font-size: 13px;
+  font-size: 14px;
   color: #737681;
 }
 .db-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   color: #3c3c42;
 }
 .db-field input, .db-field select {
@@ -1166,7 +1166,7 @@
   border: 1px solid #d0d5ec;
   border-radius: 12px;
   background: white;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--ink);
 }
 .db-field input:focus, .db-field select:focus {
@@ -1188,7 +1188,7 @@
   padding: 8px 12px;
   border-radius: 999px;
   background: #f1f3f9;
-  font-size: 12.5px;
+  font-size: 14px;
   color: var(--navy);
 }
 .db-chips button:hover { background: #f3fbe2; }
@@ -1199,10 +1199,10 @@
   padding: 12px 14px;
   border-radius: 12px;
   background: #f7f9fd;
-  font-size: 14px;
+  font-size: 16px;
 }
 .db-trade-summary span { color: #737681; }
-.db-error { font-size: 13px; color: #b42318; }
+.db-error { font-size: 14px; color: #b42318; }
 
 .db-modal-backdrop {
   position: fixed;
@@ -1312,7 +1312,7 @@
   border-top: 1px solid #eef1f7;
 }
 .db-inspector-position h3 {
-  font-size: 14px;
+  font-size: 16px;
   margin-bottom: 10px;
 }
 .db-inspector-metrics {
@@ -1327,7 +1327,7 @@
 }
 .db-inspector-metrics span {
   display: block;
-  font-size: 11.5px;
+  font-size: 14px;
   color: #747d8c;
 }
 .db-inspector-metrics strong {
@@ -1349,10 +1349,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .db-text-danger {
-  font-size: 11.5px;
+  font-size: 14px;
   color: #b42318;
   text-decoration: underline;
 }
@@ -1368,7 +1368,7 @@
   padding: 6px 10px;
   border: 1px solid #d5dceb;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .db-inspector-actions {
   display: flex;
@@ -1415,14 +1415,14 @@
   flex: 1;
   border: 0;
   outline: 0;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--ink);
 }
 .db-cmd-esc {
   padding: 4px 8px;
   border-radius: 6px;
   background: #f1f3f9;
-  font-size: 10.5px;
+  font-size: 14px;
   font-weight: 600;
   color: #5c6577;
 }
@@ -1462,13 +1462,13 @@
 }
 .db-cmd-item-copy strong {
   display: block;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--ink);
 }
 .db-cmd-item-copy small {
   display: block;
-  font-size: 11.5px;
+  font-size: 14px;
   color: #747d8c;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1478,13 +1478,13 @@
   padding: 3px 8px;
   border-radius: 999px;
   background: #f1f3f9;
-  font-size: 10.5px;
+  font-size: 14px;
   color: #566073;
 }
 .db-cmd-empty {
   padding: 28px 16px;
   text-align: center;
-  font-size: 13px;
+  font-size: 14px;
   color: #778091;
 }
 .db-cmd-foot {
@@ -1493,7 +1493,7 @@
   padding: 10px 18px;
   background: #fafbfd;
   border-top: 1px solid #eef1f7;
-  font-size: 11px;
+  font-size: 14px;
   color: #7d8696;
 }
 
@@ -1511,7 +1511,7 @@
   border-radius: 99px;
   background: #af4a39;
   color: white;
-  font-size: 9px;
+  font-size: 14px;
   line-height: 1;
 }
 .db-notification-panel {
@@ -1540,19 +1540,19 @@
 .db-notification-panel > header strong {
   display: block;
   font-family: Inter, sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
 }
 .db-notification-panel > header small {
   display: block;
   margin-top: 3px;
   color: #788394;
-  font-size: 11px;
+  font-size: 14px;
 }
 .db-notification-panel > header button,
 .db-notification-panel > footer button {
   color: #617f30;
-  font-size: 11.5px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .db-notification-panel > header button:disabled {
@@ -1585,13 +1585,13 @@
 .db-notification-icon.warn { background: #fbf3e8; color: #a36e29; }
 .db-notification-list article > div > strong {
   display: block;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
 }
 .db-notification-list article p {
   margin-top: 4px;
   color: #778292;
-  font-size: 11.5px;
+  font-size: 14px;
   line-height: 1.55;
 }
 .db-notification-list article > div > button {
@@ -1600,7 +1600,7 @@
   gap: 5px;
   margin-top: 8px;
   color: #64892c;
-  font-size: 11.5px;
+  font-size: 14px;
   font-weight: 500;
 }
 .db-unread-dot {
@@ -1646,7 +1646,7 @@
 .db-focus-copy p {
   margin-top: 4px;
   color: #6f7887;
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.55;
 }
 .db-focus-actions {
@@ -1658,7 +1658,7 @@
 }
 .db-focus-secondary {
   color: #5d7334;
-  font-size: 12px;
+  font-size: 14px;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -1671,7 +1671,7 @@
   border-radius: 8px;
   background: #fff;
   color: #364152;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
 }
 .db-row-action:hover {
@@ -1686,7 +1686,7 @@
 .db-trade-modes button {
   min-width: 0;
   padding-inline: 5px;
-  font-size: 11.5px;
+  font-size: 14px;
 }
 .db-preview-info {
   padding: 14px;
@@ -1694,7 +1694,7 @@
   border-radius: 12px;
   background: #fbfaf6;
   color: #766b58;
-  font-size: 11.5px;
+  font-size: 14px;
   line-height: 1.65;
 }
 .db-mobile-more { display: none; }
@@ -1710,7 +1710,7 @@
   border-radius: 14px;
   background: var(--navy);
   color: white;
-  font-size: 13.5px;
+  font-size: 14px;
   box-shadow: 0 18px 40px #0004;
 }
 .db-empty {
@@ -1774,7 +1774,7 @@
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  font-size: 12.5px;
+  font-size: 14px;
   color: #e4e9f7;
 }
 .db-status-dot {
@@ -1788,7 +1788,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
-  font-size: 12px;
+  font-size: 14px;
   color: #b7c0dc;
 }
 .db-footer-trust-badges span {
@@ -1811,7 +1811,7 @@
   border-radius: 999px;
   background: #232d58;
   color: #e2e7f7;
-  font-size: 12px;
+  font-size: 14px;
   transition: background 0.18s, color 0.18s;
 }
 .db-footer-pill-btn:hover {
@@ -1845,7 +1845,7 @@
 .db-footer-brand-col > p {
   max-width: 390px;
   margin: 16px 0 20px;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.65;
   color: #b2bbd6;
 }
@@ -1863,7 +1863,7 @@
   border: 1px solid #2f3b6e;
   background: #161d3a;
   color: white;
-  font-size: 13px;
+  font-size: 14px;
 }
 .db-footer-digest input::placeholder {
   color: #939ec0;
@@ -1874,7 +1874,7 @@
   border-radius: 12px;
   background: var(--green);
   color: var(--navy);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -1884,13 +1884,13 @@
 .db-footer-digest-note {
   display: block;
   margin-top: 8px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--lime);
 }
 
 .db-footer-links-col h3 {
   font-family: Poppins, sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--lime);
   margin-bottom: 16px;
@@ -1901,7 +1901,7 @@
   align-items: center;
   gap: 8px;
   margin-top: 11px;
-  font-size: 13.5px;
+  font-size: 14px;
   color: #c2c9e2;
   text-align: left;
   transition: color 0.18s;
@@ -1916,7 +1916,7 @@
 .db-footer-address {
   display: block;
   margin-top: 12px;
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.55;
   color: #97a1c2;
 }
@@ -1924,7 +1924,7 @@
 .db-footer-disclosure {
   padding: 20px 0;
   border-bottom: 1px solid #222c55;
-  font-size: 11.5px;
+  font-size: 14px;
   line-height: 1.65;
   color: #959fc0;
 }
@@ -1938,7 +1938,7 @@
   align-items: center;
   gap: 24px;
   padding-top: 22px;
-  font-size: 13px;
+  font-size: 14px;
   color: #a8b2d1;
 }
 .db-footer-bottom > p:nth-child(2) {
@@ -1958,7 +1958,7 @@
   background: var(--blue);
   color: var(--lime);
   font-family: Inter, sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   transition: background 0.18s, color 0.18s;
 }
@@ -2087,7 +2087,7 @@
     justify-content: center;
     gap: 3px;
     padding: 8px 2px;
-    font-size: 10px;
+    font-size: 14px;
     text-align: center;
   }
   .db-more-panel {
@@ -2113,7 +2113,7 @@
     padding: 10px 12px;
     border-radius: 10px;
     color: #344052;
-    font-size: 12px;
+    font-size: 14px;
     text-align: left;
   }
   .db-site-footer {
@@ -2176,7 +2176,7 @@
   .db-avatar {
     width: 30px;
     height: 30px;
-    font-size: 12px;
+    font-size: 14px;
   }
   .db-iconbtn,
   .db-top-mobile-toggle {

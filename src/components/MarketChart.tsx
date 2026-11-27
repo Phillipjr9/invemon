@@ -6,7 +6,7 @@ export const CHART_SYMBOLS: Record<string, string> = {
  AAPL: 'NASDAQ:AAPL', MSFT: 'NASDAQ:MSFT', NVDA: 'NASDAQ:NVDA', AMZN: 'NASDAQ:AMZN',
  META: 'NASDAQ:META', GOOGL: 'NASDAQ:GOOGL', TSLA: 'NASDAQ:TSLA', JPM: 'NYSE:JPM',
  VTI: 'AMEX:VTI', VOO: 'AMEX:VOO', QQQ: 'NASDAQ:QQQ', SCHD: 'AMEX:SCHD', BND: 'NASDAQ:BND', TLT: 'NASDAQ:TLT',
- ASML: 'NASDAQ:ASML', SAP: 'NYSE:SAP', AZN: 'NASDAQ:AZN', BHP: 'NYSE:BHP', '7203': 'TSE:7203', '0700': 'HKEX:700',
+ TM: 'NYSE:TM', ASML: 'NASDAQ:ASML', SAP: 'NYSE:SAP', AZN: 'NASDAQ:AZN', BHP: 'NYSE:BHP', '7203': 'TSE:7203', '0700': 'HKEX:700',
 };
 // Coin IDs, rather than ticker-only guesses, avoid collisions in the crypto directory.
 const CRYPTO_CHARTS: Record<string, string> = {
@@ -65,6 +65,6 @@ export default function MarketChart({ symbol, coinId }: { symbol: string; coinId
    <div ref={host} className="tradingview-widget-container market-chart-host" hidden={!enabled || status === 'unavailable'} />
    <a href={`https://www.tradingview.com/chart/?symbol=${encodeURIComponent(instrument)}`} target="_blank" rel="noopener noreferrer">Open {instrument} on TradingView ↗</a>
   </>}
-  <p className="market-chart-disclosure">Chart data by TradingView. Availability and delays depend on the exchange and instrument; see the chart’s own data status. Crypto charts show the named venue/pair, not a consolidated price. Sample portfolio balances, reference quotes, orders, and returns elsewhere in Invemon do not synchronize with this chart.</p>
+  <p className="market-chart-disclosure">Chart data by TradingView. Availability and delays depend on the exchange and instrument; see the chart’s own data status. Crypto charts show the named venue/pair, not a consolidated price. Chart prices are not an account balance, portfolio valuation or execution quote.</p>
  </section>;
 }

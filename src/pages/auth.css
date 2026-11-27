@@ -61,7 +61,7 @@
   border: 1px solid #242E45;
   background: rgba(255, 255, 255, 0.03);
   color: #D2D8E8;
-  font-size: 13px;
+  font-size: 14px;
   transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
 .pw-back-link:hover {
@@ -94,7 +94,7 @@
   border: 1px solid rgba(201, 166, 107, 0.35);
   background: rgba(201, 166, 107, 0.09);
   color: #E8DCC8;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -121,7 +121,7 @@
 }
 .pw-rail-copy p {
   max-width: 450px;
-  font-size: 14.5px;
+  font-size: 16px;
   line-height: 1.68;
   color: #9DA7BE;
 }
@@ -147,7 +147,7 @@
 }
 .pw-blueprint-head span {
   display: block;
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #C9A66B;
@@ -165,7 +165,7 @@
   border-radius: 999px;
   background: rgba(201, 166, 107, 0.16);
   color: #E8DCC8;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -182,7 +182,7 @@
 }
 .pw-blueprint-projection small {
   display: block;
-  font-size: 11px;
+  font-size: 14px;
   color: #8E98B2;
 }
 .pw-blueprint-projection strong {
@@ -215,7 +215,7 @@
   flex-wrap: wrap;
   gap: 12px 16px;
   margin-top: 12px;
-  font-size: 11.5px;
+  font-size: 14px;
   color: #B4BCCF;
 }
 .pw-alloc-legend span {
@@ -259,13 +259,13 @@
 }
 .pw-security-row strong {
   display: block;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: #F4F0E6;
 }
 .pw-security-row small {
   display: block;
-  font-size: 11.5px;
+  font-size: 14px;
   color: #8E98B2;
 }
 
@@ -286,7 +286,7 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid #1F2940;
-  font-size: 12px;
+  font-size: 14px;
   color: #C7CEE0;
 }
 .pw-rail-badge svg {
@@ -332,7 +332,7 @@
 .pw-auth-eyebrow {
   display: inline-block;
   margin-bottom: 8px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -348,7 +348,7 @@
 }
 .pw-auth-subtitle {
   margin-top: 8px;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.55;
   color: #626877;
 }
@@ -369,7 +369,7 @@
   border: 1px solid #ECE7DC;
   background: #FAF8F3;
   color: #798091;
-  font-size: 12px;
+  font-size: 14px;
   text-align: left;
   transition: all 0.2s;
 }
@@ -391,7 +391,7 @@
   border-radius: 50%;
   background: rgba(154, 163, 184, 0.2);
   font-family: Inter, sans-serif;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -405,13 +405,13 @@
 }
 .pw-step-pill strong {
   display: block;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   line-height: 1.2;
 }
 .pw-step-pill small {
   display: block;
-  font-size: 10px;
+  font-size: 14px;
   opacity: 0.78;
 }
 
@@ -432,7 +432,7 @@
   gap: 7px;
   padding: 10px 8px;
   border-radius: 10px;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
   color: #5C6270;
   transition: background 0.18s, color 0.18s, box-shadow 0.18s;
@@ -460,7 +460,7 @@
   border: 1px solid #DFD9CA;
   background: #FFFFFF;
   color: #161A22;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   transition: border-color 0.18s, background 0.18s, transform 0.15s;
 }
@@ -478,7 +478,7 @@
   align-items: center;
   gap: 14px;
   margin: 20px 0;
-  font-size: 11.5px;
+  font-size: 14px;
   letter-spacing: 0.04em;
   color: #848A98;
 }
@@ -504,7 +504,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
   color: #313644;
 }
@@ -515,7 +515,7 @@
   gap: 8px;
 }
 .pw-link-inline {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: #96723A;
   text-decoration: underline;
@@ -541,7 +541,7 @@
   border: 1px solid #DDD7C9;
   background: #FFFFFF;
   color: #07090F;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 400;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -581,7 +581,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11.5px;
+  font-size: 14px;
   color: #697080;
   margin-bottom: 8px;
 }
@@ -609,7 +609,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px 12px;
-  font-size: 11.5px;
+  font-size: 14px;
   color: #7C8291;
 }
 .pw-strength-checks span {
@@ -658,11 +658,11 @@
 }
 .pw-choice-card strong {
   font-family: Inter, sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 }
 .pw-choice-card small {
-  font-size: 11.5px;
+  font-size: 14px;
   line-height: 1.4;
   color: #6B7282;
 }
@@ -674,7 +674,7 @@
   border-radius: 999px;
   background: rgba(201, 166, 107, 0.18);
   color: #8B6930;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 600;
 }
 .pw-choice-card.is-selected .pw-choice-badge {
@@ -693,7 +693,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .pw-slider-head strong {
   font-family: Inter, sans-serif;
@@ -715,7 +715,7 @@
   border-radius: 999px;
   border: 1px solid #E1DAC9;
   background: #FFFFFF;
-  font-size: 11.5px;
+  font-size: 14px;
   color: #393F4E;
 }
 .pw-slider-presets button.is-active {
@@ -736,13 +736,13 @@
 }
 .pw-review-box span {
   display: block;
-  font-size: 11px;
+  font-size: 14px;
   color: #777E8E;
 }
 .pw-review-box strong {
   display: block;
   margin-top: 2px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: #07090F;
   overflow-wrap: anywhere;
@@ -782,7 +782,7 @@
   background: #F8F3E6;
   border: 1px solid #E5D6B5;
   color: #5E4822;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .pw-error-banner {
@@ -794,7 +794,7 @@
   background: #FDF0EF;
   border: 1px solid #F2C4C0;
   color: #9B2320;
-  font-size: 12.5px;
+  font-size: 14px;
 }
 .pw-success-banner {
   display: flex;
@@ -805,7 +805,7 @@
   background: #EEF6EC;
   border: 1px solid #C8E2C3;
   color: #26562B;
-  font-size: 12.5px;
+  font-size: 14px;
 }
 
 /* Primary & Secondary Auth Buttons */
@@ -820,7 +820,7 @@
   border-radius: 14px;
   background: #07090F;
   color: #F4F0E6;
-  font-size: 14.5px;
+  font-size: 16px;
   font-weight: 500;
   border: 1px solid #C9A66B;
   transition: background 0.2s, color 0.2s, transform 0.16s;
@@ -854,7 +854,7 @@
   border: 1px solid #DDD6C5;
   background: #FAF8F3;
   color: #252A36;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
 }
 .pw-btn-secondary:hover {
@@ -909,7 +909,7 @@
 .pw-passkey-box p {
   max-width: 360px;
   margin: 8px 0 18px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
   color: #666C7A;
 }
@@ -949,7 +949,7 @@
   border-radius: 12px;
   background: #FAF8F3;
   color: #888F9E;
-  font-size: 13px;
+  font-size: 14px;
   transition: all 0.25s;
 }
 .pw-provision-step.is-done {
@@ -965,7 +965,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: 13px;
+  font-size: 14px;
   color: #464C5A;
 }
 .pw-remember-row label {
@@ -985,7 +985,7 @@
   padding-top: 18px;
   border-top: 1px solid #EFEAE0;
   text-align: center;
-  font-size: 13.5px;
+  font-size: 14px;
   color: #5D6472;
 }
 .pw-auth-footer-switch button {

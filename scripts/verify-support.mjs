@@ -40,6 +40,7 @@ try{
  await page.getByLabel('Confirm staff password',{exact:true}).fill('example long password');
  await page.getByRole('button',{name:'Save internal note'}).click();
  await page.getByText('Private staff diagnostic',{exact:true}).waitFor();
+ await page.waitForFunction(()=>document.querySelector('input[autocomplete="current-password"]')?.value==='');
  assert.equal(submissions.at(-1).visibility,'internal');assert.equal(await page.getByLabel('Confirm staff password',{exact:true}).inputValue(),'');
  for(const theme of ['light','dark']){
   await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);

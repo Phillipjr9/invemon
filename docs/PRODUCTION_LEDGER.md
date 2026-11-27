@@ -24,7 +24,7 @@ The evidence reference is a pointer, not the evidence itself. Durable raw provid
 
 1. Back up the database and review migration 007. Use the existing Neon database, not a replacement database service.
 2. Set server-only `DATABASE_URL` in the operator's shell or private `.env`; never paste it in chat or use a `VITE_` variable.
-3. Run `npm run db:migrate` from the repository. The runner applies numbered migrations in order, each in one transaction. It now preserves quoted PostgreSQL function bodies. Reapplication is tested locally.
+3. Run `npm run db:migrate` from the repository. The runner applies all numbered migrations in order in one atomic transaction. It now preserves quoted PostgreSQL function bodies. Reapplication is tested locally.
 4. Verify the ledger tables exist and are empty before wiring any live service. No migration has been applied to the hosted database by this change.
 5. Restrict database credentials. PUBLIC receives no table or posting-function grants. The existing database owner can post and, like any PostgreSQL owner, can disable triggers; database-owner credentials must remain server-only and inaccessible to customers. Configure and verify least-privilege runtime/operator roles, backups, monitoring and audit retention before acceptance. This migration does not provision those roles.
 
@@ -35,3 +35,6 @@ Do not expose the balance view to clients directly: it includes all accounts. An
 `npm run test:ledger` uses PGlite to test exact precision beyond JavaScript's safe integer range, idempotency/conflicts, evidence deduplication, malformed/unknown/mismatched account lines, cross-asset imbalance, atomic rollback, mutation/extension protection and exact single reversals. The migration-runner test applies all migrations twice. These are local database tests, not hosted Neon multi-connection concurrency, disaster-recovery or live-provider certification.
 
 Production deposits remain disabled pending independently verified provider settlement reconciliation and the remaining operational requirements in `PRODUCTION_FUNDING_TRANSITION.md`. No real invoice or transfer was created while developing this ledger.
+
+## Reservation-aware follow-up
+Migration 008 adds customer fund reservations and a shared-lock, no-overdraft constraint for customer debits. The balance API now requires migration 008. See `FUND_RESERVATIONS.md` for the internal-only contract, migration instructions and remaining request/execution workflow requirements.
