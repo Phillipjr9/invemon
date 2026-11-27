@@ -50,3 +50,7 @@ DashboardPage.tsx is the old simulated workspace. LoginPage.tsx/SignupPage.tsx a
 Five existing browser suites pass with HTTP mocks. Added explicit navigation, deep-link reload and 320/1440px overflow checks for Yield, Auto-invest, Goals and Insights, plus a home-footer Support routing regression. Existing suites cover account access, recovery/verification, support, MFA, settings, portfolio/activity, markets, crypto and deposit. TypeScript, production build and diff whitespace checks pass. No live deployment or external provider validation was performed.
 
 Restored layouts additionally verified with four metric/three content panel assertions on each page, income-period selection, disabled unsupported creation controls, reload and both themes at 320/1440px.
+
+## Finance admin follow-up
+
+`#admin` now provides a server-restricted finance review console: withdrawal-purpose reservation queue, reviewing/approved/rejected decisions, append-only internal notes, atomic rejection/release, exact customer balance lookup and support link. Requires private FUNDING_ADMIN_IDS, verified email, MFA-verified session and fresh password for writes. This is not yet a complete payout system: customer request submission, saved destinations, payment execution/completion verification and customer status integration remain outstanding. See ADMIN_SYSTEM.md. Migration 009 is required before deployment; not applied to hosted Neon.
