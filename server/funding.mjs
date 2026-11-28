@@ -1,10 +1,12 @@
 import { createHmac,timingSafeEqual } from 'node:crypto';
 import { HttpError,db,checkPassword,randomUUID,sha } from './core.mjs';
+import { productionCredentialsConfigured } from './nowpayments-production.mjs';
 export function requireFundingAdmin(user){
  const ids=(process.env.FUNDING_ADMIN_IDS||'').split(',').map(s=>s.trim()).filter(Boolean);
  if(!user.email_verified_at||!user.mfa_secret||!user.mfa_verified||!ids.includes(user.id))throw new HttpError(403,'Funding administration requires authorized staff with verified email and MFA.');
 }
 export function sandboxEnabled(){return process.env.NOWPAYMENTS_SANDBOX_ENABLED==='true'&&!!process.env.NOWPAYMENTS_SANDBOX_API_KEY&&!!process.env.NOWPAYMENTS_SANDBOX_IPN_SECRET;}
+export function liveDepositsEnabled(){return process.env.NOWPAYMENTS_LIVE_DEPOSITS_ENABLED==='true'&&productionCredentialsConfigured();}
 export function usdAmount(input){
  if(typeof input!=='string'||!/^\d{1,5}(\.\d{1,2})?$/.test(input))throw new HttpError(400,'Enter a USD amount with at most two decimal places.');
  const [whole,fraction='']=input.split('.');const cents=BigInt(whole)*100n+BigInt(fraction.padEnd(2,'0'));
@@ -51,6 +53,21 @@ export async function createSandboxInvoice(user,amount){
   return {id,invoiceUrl:url,environment:'sandbox',credited:false};
  }catch(error){await sql`UPDATE funding_requests SET status='needs_review',updated_at=now() WHERE id=${id}`;throw error instanceof HttpError?error:new HttpError(502,'Sandbox request outcome is uncertain. Do not retry automatically.');}
 }
+export async function createProductionInvoice(user,amount){
+ if(!liveDepositsEnabled())throw new HttpError(503,'Live deposits are not enabled.');
+ const origin=new URL(process.env.APP_ORIGIN||'');if(origin.protocol!=='https:')throw new HttpError(503,'An HTTPS application origin is required.');
+ const sql=db(),id=randomUUID(),normalized=usdAmount(amount);
+ await sql`INSERT INTO funding_requests(id,user_id,amount_usd,environment,status) VALUES(${id},${user.id},${normalized},'production','creating')`;
+ try{
+  const response=await fetch('https://api.nowpayments.io/v1/invoice',{method:'POST',signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/json','x-api-key':process.env.NOWPAYMENTS_API_KEY},body:JSON.stringify({price_amount:Number(normalized),price_currency:'usd',order_id:id,order_description:'Invemon USD account funding',ipn_callback_url:`${origin.origin}/api/funding-ipn`,success_url:`${origin.origin}/#funding`,cancel_url:`${origin.origin}/#funding`})});
+  if(!response.ok){throw new HttpError(502,`Payment provider rejected the invoice (HTTP ${response.status}).`);}
+  const result=await response.json(),url=providerInvoiceUrlForProduction(result.invoice_url),providerId=String(result.id||'');
+  if(!/^\d{1,40}$/.test(providerId))throw new HttpError(502,'Invalid production invoice identifier.');
+  await sql`UPDATE funding_requests SET provider_id=${providerId},invoice_url=${url},status='waiting',updated_at=now() WHERE id=${id}`;
+  return {id,invoiceUrl:url,environment:'production',credited:false};
+ }catch(error){await sql`UPDATE funding_requests SET status='needs_review',updated_at=now() WHERE id=${id}`;throw error instanceof HttpError?error:new HttpError(502,'Production invoice outcome is uncertain. Do not retry automatically.');}
+}
+export function providerInvoiceUrlForProduction(input){try{const url=new URL(input);if(url.protocol!=='https:'||url.username||url.password||url.port||url.hostname!=='nowpayments.io')throw new Error();return url.href;}catch{throw new HttpError(502,'Provider returned an unrecognized production checkout URL.');}}
 export async function updateBankInstructions(user,input){
  requireFundingAdmin(user);
  if(!await checkPassword(input.currentPassword,user.password_hash))throw new HttpError(401,'Confirm your current password.');
@@ -63,3 +80,13 @@ export async function updateBankInstructions(user,input){
  return {revision:rows[0].revision,published:false};
 }
 export const fundingEventHash=value=>sha(JSON.stringify(canonical(value)));
+export function validateProductionSettlement({requestAmount,callbackStatus,providerStatus,callbackOrder,callbackInvoice,callbackPayment,providerOrder,providerInvoice,providerPayment,priceAmount,priceCurrency,purchaseAmount,purchaseCurrency,payCurrency,payNetwork}){
+ if(callbackStatus!==providerStatus||providerStatus!== 'finished')throw new HttpError(202,'Payment is not in a final settled state.');
+ if(callbackOrder!==providerOrder||callbackInvoice!==providerInvoice||callbackPayment!==providerPayment)throw new HttpError(409,'Provider order, invoice or payment identity mismatch.');
+ const amount=Number(priceAmount),purchase=Number(purchaseAmount??priceAmount);
+ if(!Number.isFinite(amount)||Math.abs(amount-requestAmount)>0.000001||!Number.isFinite(purchase)||Math.abs(purchase-requestAmount)>0.000001)throw new HttpError(409,'Provider amount mismatch.');
+ if(String(priceCurrency||'usd').toLowerCase()!=='usd'||String(purchaseCurrency||'usd').toLowerCase()!=='usd')throw new HttpError(409,'Provider currency mismatch.');
+ if(!payCurrency||typeof payCurrency!=='string'||payCurrency.trim().length<2||payCurrency.length>20)throw new HttpError(409,'Provider settlement asset is missing.');
+ if(!payNetwork||typeof payNetwork!=='string'||payNetwork.trim().length<2||payNetwork.length>80)throw new HttpError(409,'Provider settlement network is missing.');
+ return {settledAmount:amount,payCurrency:payCurrency.trim().toLowerCase(),payNetwork:payNetwork.trim().toLowerCase()};
+}

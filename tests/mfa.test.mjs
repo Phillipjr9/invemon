@@ -45,7 +45,7 @@ test('authenticated encryption binds secret to user and requires the configured 
  process.env.MFA_ENCRYPTION_KEY='c'.repeat(64);
 });
 test('setup requires session, password, verified email and server key; only encrypted pending secret stored',async()=>{
- owner=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,email:'mfa@example.com',name:'MFA Owner',password}});uid=owner.value.account.serverUserId;oldCookie=owner.cookie;
+ owner=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.2',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,email:'mfa@example.com',name:'MFA Owner',password}});uid=owner.value.account.serverUserId;oldCookie=owner.cookie;
  assert.equal((await call(mfa,{data:{action:'setup',currentPassword:password}})).status,401);
  assert.equal((await call(mfa,{cookie:owner.cookie,data:{action:'setup',currentPassword:'wrong'}})).status,401);
  assert.equal((await call(mfa,{cookie:owner.cookie,data:{action:'setup',currentPassword:password}})).status,403);

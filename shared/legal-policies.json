@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-27.1",
+  "version": "2026-11-27.2",
   "publishedDate": "2026-11-27",
   "reviewNotice": "Published operational policy draft. The operator’s legal identity, notice contact, service eligibility, regulatory position and jurisdiction-specific requirements must be finalized with qualified counsel before public launch. These pages do not certify legal compliance or override mandatory rights.",
   "documents": [
@@ -127,7 +127,7 @@
         },
         {
           "heading": "Timing, corrections and complaints",
-          "text": "No fixed payout deadline is promised unless separately disclosed and accepted. Review, reconciliation, network/bank availability, fraud checks or applicable legal requirements can delay processing. Requests and payment attempts must not be duplicated after an uncertain response; inspect account history and retry only the same request where supported. Contact support with the reference for disputes, erroneous destinations, unmatched payments or refund requests. Recovery and refunds depend on facts, control of the funds and applicable law; no blanket no-refund rule or guaranteed recovery applies."
+          "text": "No fixed payout deadline is promised unless separately disclosed and accepted. Review, reconciliation, network/bank availability, fraud checks or applicable legal requirements can delay processing. Requests and payment attempts must not be duplicated after an uncertain response; inspect account history and retry only the same request where supported. Contact support with the reference for disputes, erroneous destinations, unmatched payments or refund requests. Completed crypto deposits and transfers are final and non-refundable, except where required by applicable law. This policy does not prevent investigation of duplicate payments, erroneous ledger credits or unexpected provider refunds. Accounting corrections are distinct from customer-requested refunds. Recovery of an incorrectly addressed transfer is not guaranteed."
         }
       ]
     }

@@ -13,7 +13,13 @@ const port = Number(process.env.PORT || 3000);
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
   throw new Error('PORT must be an integer between 1 and 65535.');
 }
-const listener = { host: '0.0.0.0', port, strictPort: true, allowedHosts: ['.e2b.app'] };
+const listener = {
+  host: '0.0.0.0',
+  port,
+  strictPort: true,
+  // Keep host validation enabled; allow only the supported preview providers.
+  allowedHosts: ['.e2b.app', 'ov7279w32e.preview.c24.airoapp.ai'],
+};
 
 // https://vite.dev/config/
 export default defineConfig({

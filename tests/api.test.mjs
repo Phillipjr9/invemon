@@ -25,7 +25,7 @@ async function call(handler,{method='POST',data,cookie,origin='https://invemon.e
  await handler({method,body:data,headers:{origin,cookie,'content-type':'application/json','x-forwarded-for':ip}},{setHeader(k,v){headers[k.toLowerCase()]=v;},status(s){status=s;return this;},json(v){value=v;return this;}});
  return {status,value,headers,cookie:headers['set-cookie']?.split(';')[0]};
 }
-const registration={action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,email:'owner@example.com',password:'a long unique password!',name:'Owner',country:'United States',risk:'Growth'};
+const registration={action:'register',policyVersion:'2026-11-27.2',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,email:'owner@example.com',password:'a long unique password!',name:'Owner',country:'United States',risk:'Growth'};
 let owner,other;
 test('same-origin guard and unauthenticated workspace access',async()=>{
  assert.equal((await call(auth,{data:registration,origin:'https://attacker.example'})).status,403);

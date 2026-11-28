@@ -9,7 +9,9 @@ await pg.exec(fs.readFileSync(new URL('../db/003_account_tokens.sql',import.meta
 await pg.exec(fs.readFileSync(new URL('../db/004_support_threads.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/005_authenticator_mfa.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/006_funding_sandbox.sql',import.meta.url),'utf8'));
+await pg.exec(fs.readFileSync(new URL('../db/007_production_ledger.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/019_legal_acceptance.sql',import.meta.url),'utf8'));
+await pg.exec(fs.readFileSync(new URL('../db/020_production_funding.sql',import.meta.url),'utf8'));
 function query(text, values=[]) {
  return { text, values, then(resolve,reject) { return pg.query(text,values).then(result=>result.rows).then(resolve,reject); } };
 }
@@ -25,8 +27,8 @@ async function call(handler,{method='POST',data,cookie,origin='https://invemon.e
  await handler({method,body:data,headers:{'x-nowpayments-sig':signature,origin,cookie,'content-type':'application/json','x-forwarded-for':ip}},{setHeader(k,v){headers[k.toLowerCase()]=v;},status(s){status=s;return this;},json(v){value=v;return this;}});
  return {status,value,headers,cookie:headers['set-cookie']?.split(';')[0]};
 }
-const {createHmac}=await import('node:crypto');
-const {usdAmount,canonical,verifyIpn,providerInvoiceUrl,createSandboxInvoice}=await import('../server/funding.mjs');
+const {createHmac,randomUUID}=await import('node:crypto');
+const {usdAmount,canonical,verifyIpn,providerInvoiceUrl,createSandboxInvoice,validateProductionSettlement}=await import('../server/funding.mjs');
 let owner,other,uid;
 const password='a long secure test password!';
 test('decimal input, sandbox host allowlist, and recursive callback signature validation',()=>{
@@ -37,8 +39,8 @@ test('decimal input, sandbox host allowlist, and recursive callback signature va
 });
 test('funding requires owner session; sandbox disabled by default, sign-in still required',async()=>{
  assert.equal((await call(funding,{method:'GET'})).status,401);
- owner=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Funding Owner',email:'funding@example.com',password}});uid=owner.value.account.serverUserId;
- other=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Other Owner',email:'other-funding@example.com',password}});
+ owner=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.2',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Funding Owner',email:'funding@example.com',password}});uid=owner.value.account.serverUserId;
+ other=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.2',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Other Owner',email:'other-funding@example.com',password}});
  assert.equal((await call(funding,{data:{action:'create-invoice',amount:'10'}})).status,401);
  assert.equal((await call(funding,{cookie:owner.cookie,origin:'https://evil.example',data:{action:'create-invoice',amount:'10'}})).status,403);
  assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'create-invoice',amount:'10'}})).status,503);
@@ -94,4 +96,38 @@ test('production payment lookup uses fixed authenticated host, rejects identity 
   globalThis.fetch=async()=>new Response(JSON.stringify({payment_id:999}));await assert.rejects(()=>readProductionPayment('123'),/mismatch/);
   globalThis.fetch=async()=>new Response('secret response',{status:403});await assert.rejects(()=>readProductionPayment('123'),/HTTP 403/);
  }finally{globalThis.fetch=original;}
+});
+test('production deposit replay posts exactly once to the request owner in exact USD cents',async()=>{const productionUser=randomUUID(),productionRequest=randomUUID();await pg.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,'production-funding@example.invalid','test')",[productionUser]);await pg.query("INSERT INTO funding_requests(id,user_id,amount_usd,environment,provider_id,status) VALUES($1,$2,10.25,'production','123456','waiting')",[productionRequest,productionUser]);const payment='456789',evidence='provider-status:456789';const first=await pg.query('SELECT reconcile_production_deposit($1,$2,$3,'+"'finished'"+',$4::numeric,$5) AS id',[productionRequest,payment,'123456','10.25',evidence]);const second=await pg.query('SELECT reconcile_production_deposit($1,$2,$3,'+"'finished'"+',$4::numeric,$5) AS id',[productionRequest,payment,'123456','10.25',evidence]);assert.equal(first.rows[0].id,second.rows[0].id);assert.equal((await pg.query('SELECT count(*)::int n FROM ledger_journals WHERE posting_key=$1',['nowpayments-deposit:'+payment])).rows[0].n,1);assert.equal((await pg.query('SELECT count(*)::int n FROM ledger_entries e JOIN ledger_journals j ON j.id=e.journal_id WHERE j.posting_key=$1',['nowpayments-deposit:'+payment])).rows[0].n,2);assert.deepEqual((await pg.query('SELECT units::text FROM ledger_entries e JOIN ledger_journals j ON j.id=e.journal_id WHERE j.posting_key=$1 ORDER BY line',['nowpayments-deposit:'+payment])).rows.map(r=>r.units),['1025','-1025']);assert.equal((await pg.query('SELECT credited_journal_id FROM funding_requests WHERE id=$1',[productionRequest])).rows[0].credited_journal_id,first.rows[0].id);});
+test('concurrent duplicate production reconciliation cannot double-credit',async()=>{const user=randomUUID(),request=randomUUID();await pg.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,'concurrent@example.invalid','test')",[user]);await pg.query("INSERT INTO funding_requests(id,user_id,amount_usd,environment,provider_id,status) VALUES($1,$2,25.00,'production','777','waiting')",[request,user]);const payment='888',evidence='provider-status:888';const concurrent=await Promise.all([pg.query('SELECT reconcile_production_deposit($1,$2,$3,'+"'finished'"+',$4::numeric,$5) AS id',[request,payment,'777','25.00',evidence]),pg.query('SELECT reconcile_production_deposit($1,$2,$3,'+"'finished'"+',$4::numeric,$5) AS id',[request,payment,'777','25.00',evidence]),pg.query('SELECT reconcile_production_deposit($1,$2,$3,'+"'finished'"+',$4::numeric,$5) AS id',[request,payment,'777','25.00',evidence])]);assert.equal(concurrent[0].rows[0].id,concurrent[1].rows[0].id);assert.equal(concurrent[0].rows[0].id,concurrent[2].rows[0].id);assert.equal((await pg.query('SELECT count(*)::int n FROM ledger_journals WHERE posting_key=$1',['nowpayments-deposit:'+payment])).rows[0].n,1);assert.equal((await pg.query('SELECT count(*)::int n FROM ledger_entries e JOIN ledger_journals j ON j.id=e.journal_id WHERE j.posting_key=$1',['nowpayments-deposit:'+payment])).rows[0].n,2);assert.deepEqual((await pg.query('SELECT units::text FROM ledger_entries e JOIN ledger_journals j ON j.id=e.journal_id WHERE j.posting_key=$1 ORDER BY line',['nowpayments-deposit:'+payment])).rows.map(r=>r.units),['2500','-2500']);});
+test('production settlement rejects pending, partial, failed, expired and refunded states and mismatches',()=>{for(const status of ['waiting','confirming','partially_paid','failed','expired','refunded'])assert.throws(()=>validateProductionSettlement({requestAmount:10,callbackStatus:status,providerStatus:status,callbackOrder:'order',callbackInvoice:'invoice',callbackPayment:'payment',providerOrder:'order',providerInvoice:'invoice',providerPayment:'payment',priceAmount:10,priceCurrency:'usd',purchaseAmount:10,purchaseCurrency:'usd',payCurrency:'usdt',payNetwork:'tron'}),/final settled|identity|amount|currency|asset|network/);for(const patch of [{priceAmount:9},{priceCurrency:'eur'},{payCurrency:''},{payNetwork:''},{providerOrder:'wrong'}, {providerInvoice:'wrong'}, {providerPayment:'wrong'}])assert.throws(()=>validateProductionSettlement({requestAmount:10,callbackStatus:'finished',providerStatus:'finished',callbackOrder:'order',callbackInvoice:'invoice',callbackPayment:'payment',providerOrder:'order',providerInvoice:'invoice',providerPayment:'payment',priceAmount:10,priceCurrency:'usd',purchaseAmount:10,purchaseCurrency:'usd',payCurrency:'usdt',payNetwork:'tron',...patch}),/final settled|identity|amount|currency|asset|network/);assert.deepEqual(validateProductionSettlement({requestAmount:10,callbackStatus:'finished',providerStatus:'finished',callbackOrder:'order',callbackInvoice:'invoice',callbackPayment:'payment',providerOrder:'order',providerInvoice:'invoice',providerPayment:'payment',priceAmount:10,priceCurrency:'usd',purchaseAmount:10,purchaseCurrency:'usd',payCurrency:'USDT',payNetwork:'Tron'}),{settledAmount:10,payCurrency:'usdt',payNetwork:'tron'});});
+
+const {verifyProductionSettlement}=await import('../server/production-settlement.mjs');
+test('strict production evidence rejects missing fields, mismatches and underpayment without rounding',()=>{
+ const request={id:randomUUID(),provider_id:'123',amount_usd:'10.25'};
+ const evidence={order_id:request.id,invoice_id:'123',payment_id:'456',payment_status:'finished',price_currency:'usd',price_amount:'10.25',pay_currency:'usdt',network:'eth',pay_amount:'10.25',actually_paid:'10.25'};
+ assert.equal(verifyProductionSettlement(request,evidence,evidence).amount,'10.25');
+ for(const field of ['order_id','invoice_id','payment_id','price_currency','price_amount','pay_currency','network','pay_amount','actually_paid']){
+  const missing={...evidence};delete missing[field];assert.throws(()=>verifyProductionSettlement(request,evidence,missing),undefined,field);
+ }
+ for(const patch of [{order_id:randomUUID()},{invoice_id:'999'},{payment_id:'999'},{price_currency:'eur'},{price_amount:'10.2500001'},{pay_currency:'btc'},{network:'bsc'},{actually_paid:'10.249999999999999999'},{payment_status:'refunded'}])assert.throws(()=>verifyProductionSettlement(request,evidence,{...evidence,...patch}));
+ assert.throws(()=>verifyProductionSettlement({...request,requested_network:'bsc'},evidence,evidence));
+ assert.throws(()=>verifyProductionSettlement({...request,provider_payment_id:'999'},evidence,evidence));
+});
+test('real callback route applies strict provider validation before a ledger credit',async()=>{
+ process.env.NOWPAYMENTS_LIVE_DEPOSITS_ENABLED='true';
+ const id=randomUUID();
+ await pg.query("INSERT INTO funding_requests(id,user_id,amount_usd,environment,provider_id,status) VALUES($1,$2,10.25,'production','987','waiting')",[id,uid]);
+ const payload={order_id:id,invoice_id:'987',payment_id:'654',payment_status:'finished',price_currency:'usd',price_amount:'10.25',pay_currency:'usdt',network:'eth',pay_amount:'10.25',actually_paid:'10.25'};
+ const signature=createHmac('sha512',process.env.NOWPAYMENTS_IPN_SECRET).update(JSON.stringify(canonical(payload))).digest('hex');
+ const original=globalThis.fetch;
+ try{
+  for(const patch of [{order_id:undefined},{price_currency:undefined},{network:'bsc'},{actually_paid:'10.24'}]){
+   globalThis.fetch=async()=>new Response(JSON.stringify({...payload,...patch}));
+   assert.equal((await call(ipn,{data:payload,signature})).status,409);
+  }
+  assert.equal((await pg.query('SELECT credited_journal_id FROM funding_requests WHERE id=$1',[id])).rows[0].credited_journal_id,null);
+  globalThis.fetch=async()=>new Response(JSON.stringify(payload));
+  const first=await call(ipn,{data:payload,signature});assert.equal(first.status,200);assert.equal(first.value.credited,true);
+  const replay=await call(ipn,{data:payload,signature});assert.equal(replay.status,200);assert.equal(replay.value.journalId,first.value.journalId);
+ }finally{globalThis.fetch=original;delete process.env.NOWPAYMENTS_LIVE_DEPOSITS_ENABLED;}
 });
