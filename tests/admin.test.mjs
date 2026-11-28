@@ -17,7 +17,7 @@ async function call({method='GET',query={},data,auth=token,origin='https://invem
 let reservation;
 test('admin is deny-by-default and requires configured ID, verified email and MFA',async()=>{
  assert.equal((await call({auth:''})).status,401);assert.equal((await call()).status,403);
- process.env.FUNDING_ADMIN_IDS=admin;assert.equal((await call({auth:customerToken})).status,403);
+ process.env.FUNDING_ADMIN_IDS=admin;process.env.SUPER_ADMIN_IDS=admin;assert.equal((await call({auth:customerToken})).status,403);
  await pg.query('UPDATE app_sessions SET mfa_verified=false WHERE user_id=$1',[admin]);assert.equal((await call()).status,401);
  await pg.query('UPDATE app_sessions SET mfa_verified=true WHERE user_id=$1',[admin]);
  await pg.query('UPDATE app_users SET email_verified_at=NULL WHERE id=$1',[admin]);assert.equal((await call()).status,403);
@@ -125,4 +125,12 @@ test('admin pair pause blocks acceptance of a previously issued customer quote',
  assert.equal((await dealerCall('pair.save',{...config,enabled:false},{id:policy,revision:3})).status,200);
  await assert.rejects(pg.query('SELECT accept_dealer_quote($1,$2)',[quoteId,customer]),/expired or pair disabled/);
  assert.equal((await pg.query('SELECT count(*) FROM dealer_trades')).rows[0].count,0);
+});
+
+test('ordinary admin can read but cannot change inventory or self-escalate',async()=>{
+ const saved=process.env.SUPER_ADMIN_IDS;delete process.env.SUPER_ADMIN_IDS;
+ try{
+  const queue=await call();assert.equal(queue.status,200);assert.equal(queue.body.role,'admin');
+  assert.equal((await call({method:'POST',data:{action:'inventory',operation:'inventory.register',role:'super_admin'}})).status,403);
+ }finally{process.env.SUPER_ADMIN_IDS=saved;}
 });

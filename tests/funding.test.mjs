@@ -67,7 +67,7 @@ test('forged, unmatched and replayed callbacks cannot credit balances; events de
  assert.equal((await pg.query('SELECT * FROM demo_workspaces')).rows.length,0);
 });
 test('bank drafts require independent allowlist MFA and password; stale revisions fail and customers cannot read',async()=>{
- assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'bank-status'}})).status,403);process.env.FUNDING_ADMIN_IDS=uid;
+ assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'bank-status'}})).status,403);process.env.FUNDING_ADMIN_IDS=uid;process.env.SUPER_ADMIN_IDS=uid;
  assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'bank-status'}})).status,403);
  await pg.query("UPDATE app_users SET email_verified_at=now(),mfa_secret='test-secret' WHERE id=$1",[uid]);await pg.query('UPDATE app_sessions SET mfa_verified=true WHERE user_id=$1',[uid]);
  const instructions={beneficiary:'TEST ONLY',bankName:'Fictional Bank',accountNumber:'TEST-123',routingOrSwift:'TEST',currency:'USD',referenceInstructions:'Draft test'};
@@ -130,4 +130,29 @@ test('real callback route applies strict provider validation before a ledger cre
   const first=await call(ipn,{data:payload,signature});assert.equal(first.status,200);assert.equal(first.value.credited,true);
   const replay=await call(ipn,{data:payload,signature});assert.equal(replay.status,200);assert.equal(replay.value.journalId,first.value.journalId);
  }finally{globalThis.fetch=original;delete process.env.NOWPAYMENTS_LIVE_DEPOSITS_ENABLED;}
+});
+
+const {validateUSBankInstructions}=await import('../server/funding.mjs');
+test('US bank drafts validate methods, separate ABA routing numbers and account details',()=>{
+ const draft={schemaVersion:2,beneficiary:'Business LLC',beneficiaryAddress:'1 Test St, Newark, NJ 07102, US',bankName:'Test Bank',bankAddress:'2 Test St, Newark, NJ 07102, US',accountNumber:'0012345678',accountType:'checking',currency:'USD',methods:'both',achRouting:'021000021',wireRouting:'021000021',referenceInstructions:'Include account reference'};
+ assert.equal(validateUSBankInstructions(draft).accountNumber,'0012345678');
+ for(const patch of [{achRouting:''},{wireRouting:'123456789'},{currency:'EUR'},{accountNumber:'1e10'},{accountType:'other'},{beneficiaryAddress:''},{intermediaryRouting:'021000021'},{password:'secret'}])assert.throws(()=>validateUSBankInstructions({...draft,...patch}));
+ assert.equal(validateUSBankInstructions({...draft,methods:'ach',wireRouting:''}).methods,'ach');
+ assert.equal(validateUSBankInstructions({...draft,methods:'wire',achRouting:''}).methods,'wire');
+});
+test('US bank instructions persist as an owner-restricted unpublished revision',async()=>{
+ const current=(await pg.query('SELECT max(revision)::text revision FROM bank_instruction_versions')).rows[0].revision;
+ const instructions={schemaVersion:2,beneficiary:'Business LLC',beneficiaryAddress:'1 Test St, Newark, NJ 07102, US',bankName:'Test Bank',bankAddress:'2 Test St, Newark, NJ 07102, US',accountNumber:'0012345678',accountType:'checking',currency:'USD',methods:'both',achRouting:'021000021',wireRouting:'021000021',referenceInstructions:'Include customer reference'};
+ const data={action:'bank-update',revision:current,instructions,currentPassword:password};
+ assert.equal((await call(funding,{cookie:other.cookie,data})).status,403);
+ const saved=await call(funding,{cookie:owner.cookie,data});assert.equal(saved.status,200);assert.equal(saved.value.published,false);
+ assert.equal((await call(funding,{cookie:owner.cookie,data})).status,409);
+ const loaded=await call(funding,{cookie:owner.cookie,data:{action:'bank-status'}});assert.equal(loaded.value.bank.instructions.accountNumber,'0012345678');assert.equal(loaded.value.bank.instructions.schemaVersion,2);
+ assert.equal((await call(funding,{cookie:other.cookie,data:{action:'bank-status'}})).status,403);
+});
+test('ordinary admin cannot modify bank instructions even with a valid session and password',async()=>{
+ delete process.env.SUPER_ADMIN_IDS;
+ await pg.query('DELETE FROM app_rate_limits');
+ try{assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'bank-update',revision:'0',instructions:{},currentPassword:password,role:'super_admin'}})).status,403);}
+ finally{process.env.SUPER_ADMIN_IDS=uid;}
 });

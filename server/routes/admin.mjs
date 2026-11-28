@@ -1,12 +1,12 @@
+import {requireAdmin} from '../admin-roles.mjs';
 import {attemptUserNotifications} from '../notifications.mjs';
 import {inventoryView,inventoryChange} from '../admin-inventory.mjs';
 import {db,headers,guard,session,body,HttpError,fail,rateLimit,checkPassword,randomUUID} from '../core.mjs';
-import {requireFundingAdmin} from '../funding.mjs';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export default async function handler(req,res){
  headers(res);
  try{
-  guard(req,['GET','POST']);const user=await session(req);requireFundingAdmin(user);
+  guard(req,['GET','POST']);const user=await session(req);const role=requireAdmin(user);
   await rateLimit(req,`admin-${user.id}`,req.method==='GET'?120:20);const sql=db();
   if(req.method==='GET'){
    const view=req.query?.view||'queue';
@@ -42,9 +42,9 @@ export default async function handler(req,res){
     FROM fund_reservation_states r LEFT JOIN withdrawal_requests w ON w.id=r.id LEFT JOIN withdrawal_destinations d ON d.id=w.destination_id JOIN app_users u ON u.id=r.user_id JOIN ledger_assets a ON a.code=r.asset
     LEFT JOIN LATERAL(SELECT revision,decision FROM admin_review_events WHERE reservation_id=r.id ORDER BY revision DESC LIMIT 1)e ON true
     WHERE r.purpose='withdrawal' ORDER BY r.created_at DESC,r.id DESC LIMIT 100`;
-   return res.status(200).json({requests,limit:100,payoutsEnabled:false});
+   return res.status(200).json({requests,limit:100,payoutsEnabled:false,role});
   }
-  const input=body(req);if(input.action==='inventory')return res.status(200).json(await inventoryChange(sql,user,input));
+  const input=body(req);if(input.action==='inventory'){requireAdmin(user,{superOnly:true});return res.status(200).json(await inventoryChange(sql,user,input));}
   if(input.action!=='review')throw new HttpError(400,'Unsupported admin action.');
   if(typeof input.id!=='string'||!uuid.test(input.id)||!Number.isInteger(input.revision)||input.revision<0||!['reviewing','approved','rejected'].includes(input.decision)||typeof input.note!=='string'||input.note.trim().length<1||input.note.length>2000)throw new HttpError(400,'Provide a request, revision, decision and a note of 1–2,000 characters.');
   if(!await checkPassword(input.currentPassword,user.password_hash))throw new HttpError(401,'Confirm your current password for this admin action.');

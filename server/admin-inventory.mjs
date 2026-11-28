@@ -1,3 +1,4 @@
+import {requireAdmin} from './admin-roles.mjs';
 import {checkPassword,HttpError,randomUUID} from './core.mjs';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const units=v=>typeof v==='string'&&/^[1-9][0-9]{0,37}$/.test(v);
@@ -9,6 +10,7 @@ export async function inventoryView(sql){
  return {assets,inventories,pairs,events,tradingEnabled:process.env.INTERNAL_TRADING_ENABLED==='true',fundingEnabled:false};
 }
 export async function inventoryChange(sql,user,input){
+ requireAdmin(user,{superOnly:true});
  if(!['pair.save','inventory.register','inventory.evidence'].includes(input.operation))throw new HttpError(400,'Unsupported inventory operation.');
  if(typeof input.note!=='string'||input.note.trim().length<1||input.note.length>2000)throw new HttpError(400,'An audit note of 1–2,000 characters is required.');
  const data=input.config;if(!data||typeof data!=='object'||Array.isArray(data))throw new HttpError(400,'Provide inventory configuration.');
