@@ -41,6 +41,19 @@ test('registration derives password and issues secure opaque session; session ne
  assert.equal((await call(auth,{data:{action:'login',email:'unknown@example.com',password:'wrong'}})).status,401);
  other=await call(auth,{data:{...registration,email:'other@example.com'}});assert.equal(other.status,201);
 });
+test('account role hints come only from server configuration, not profile metadata',async()=>{
+ const id=owner.value.account.serverUserId;
+ await pg.query(`UPDATE app_users SET profile=profile || '{"adminRole":"super_admin"}'::jsonb WHERE id=$1`,[id]);
+ assert.equal((await call(auth,{method:'GET',cookie:owner.cookie})).value.account.adminRole,null);
+ process.env.FUNDING_ADMIN_IDS=id;
+ assert.equal((await call(auth,{method:'GET',cookie:owner.cookie})).value.account.adminRole,'admin');
+ process.env.SUPER_ADMIN_IDS=id;
+ try{
+  const response=await call(auth,{method:'GET',cookie:owner.cookie});
+  assert.equal(response.value.account.adminRole,'super_admin');
+  assert.equal(response.value.account.emailVerified,false);
+ }finally{delete process.env.SUPER_ADMIN_IDS;delete process.env.FUNDING_ADMIN_IDS;}
+});
 const snapshot={schemaVersion:3,cash:123,holdings:[],goals:[],plans:[],activity:[],prefs:{}};
 test('workspace persistence, ownership isolation, optimistic locking, invalid input',async()=>{
  let result=await call(workspace,{method:'PUT',cookie:owner.cookie,data:{snapshot,revision:0,userId:other.value.account.serverUserId}});assert.equal(result.status,200);assert.equal(result.value.revision,1);
