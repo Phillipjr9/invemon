@@ -10,6 +10,17 @@ export default async function handler(req,res){
   await rateLimit(req,`admin-${user.id}`,req.method==='GET'?120:20);const sql=db();
   if(req.method==='GET'){
    const view=req.query?.view||'queue';
+   if(view==='deposits'){
+    const deposits=await sql`SELECT f.id,f.user_id,f.amount_usd::text,f.status,f.provider_id,f.provider_payment_id,f.provider_status,f.reconciliation_status,f.credited_journal_id,f.created_at,f.updated_at,
+     (SELECT count(*)::int FROM funding_events e WHERE e.request_id=f.id) AS callback_count,
+     CASE WHEN f.credited_journal_id IS NOT NULL AND f.provider_status='refunded' THEN 'refund_after_credit'
+      WHEN f.credited_journal_id IS NOT NULL THEN 'credited'
+      WHEN f.provider_status='finished' THEN 'settled_without_credit'
+      WHEN f.updated_at<now()-interval '24 hours' THEN 'stale_uncredited'
+      ELSE 'pending' END AS attention
+     FROM funding_requests f WHERE f.environment='production' ORDER BY f.created_at DESC,f.id DESC LIMIT 100`;
+    return res.status(200).json({deposits,limit:100,readOnly:true});
+   }
    if(view==='inventory')return res.status(200).json(await inventoryView(sql));
    if(view==='orders'){
     const orders=await sql`SELECT o.id,o.created_at,u.email,q.operation,q.provider,q.source_asset,q.source_units::text,q.fee_units::text,a.decimals,q.target_symbol,

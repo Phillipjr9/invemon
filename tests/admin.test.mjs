@@ -134,3 +134,11 @@ test('ordinary admin can read but cannot change inventory or self-escalate',asyn
   assert.equal((await call({method:'POST',data:{action:'inventory',operation:'inventory.register',role:'super_admin'}})).status,403);
  }finally{process.env.SUPER_ADMIN_IDS=saved;}
 });
+test('deposit monitor is restricted, production-only, read-only and flags missing credits',async()=>{
+ assert.equal((await call({auth:customerToken,query:{view:'deposits'}})).status,403);
+ const production=randomUUID(),sandbox=randomUUID();
+ await pg.query("INSERT INTO funding_requests(id,user_id,environment,amount_usd,provider_status) VALUES($1,$3,'production',10.25,'finished'),($2,$3,'sandbox',1.00,'finished')",[production,sandbox,customer]);
+ const result=await call({query:{view:'deposits'}});assert.equal(result.status,200);assert.equal(result.body.readOnly,true);
+ assert.equal(result.body.deposits.length,1);assert.equal(result.body.deposits[0].id,production);assert.equal(result.body.deposits[0].attention,'settled_without_credit');assert.equal(result.body.deposits[0].credited_journal_id,null);
+ assert.equal((await pg.query('SELECT credited_journal_id FROM funding_requests WHERE id=$1',[production])).rows[0].credited_journal_id,null);
+});

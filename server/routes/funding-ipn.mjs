@@ -6,10 +6,14 @@ export default async function handler(req,res){
  headers(res);
  try{
   if(req.method!=='POST')throw new HttpError(405,'Method not allowed.');
-  const input=body(req,32000),sql=db(),order=String(input.order_id||''),invoice=String(input.invoice_id||''),payment=String(input.payment_id||''),status=String(input.payment_status||'');
+  const input=body(req,32000),order=String(input.order_id||''),invoice=String(input.invoice_id||''),payment=String(input.payment_id||''),status=String(input.payment_status||'');
   const states=['waiting','confirming','confirmed','sending','partially_paid','finished','failed','refunded','expired'];
   if(!/^[a-f0-9-]{36}$/i.test(order)||!/^\d{1,40}$/.test(payment)||!states.includes(status))throw new HttpError(400,'Unsupported callback.');
-  if(input.environment==='production'||order){
+  const productionSigned=verifyIpn(input,req.headers['x-nowpayments-sig'],process.env.NOWPAYMENTS_IPN_SECRET);
+  const sandboxSigned=sandboxEnabled()&&verifyIpn(input,req.headers['x-nowpayments-sig'],process.env.NOWPAYMENTS_SANDBOX_IPN_SECRET);
+  if(!productionSigned&&!sandboxSigned)throw new HttpError(401,'Invalid callback signature.');
+  const sql=db();
+  if(productionSigned){
    const rows=await sql`SELECT id,provider_id,amount_usd,provider_payment_id,requested_asset,requested_network FROM funding_requests WHERE id=${order} AND environment='production'`;
    if(rows.length){
     if(!process.env.NOWPAYMENTS_LIVE_DEPOSITS_ENABLED||process.env.NOWPAYMENTS_LIVE_DEPOSITS_ENABLED!=='true')throw new HttpError(503,'Live deposits are disabled.');
