@@ -1,10 +1,8 @@
+import {requireAdmin} from './admin-roles.mjs';
 import { createHmac,timingSafeEqual } from 'node:crypto';
 import { HttpError,db,checkPassword,randomUUID,sha } from './core.mjs';
 import { productionCredentialsConfigured } from './nowpayments-production.mjs';
-export function requireFundingAdmin(user){
- const ids=(process.env.FUNDING_ADMIN_IDS||'').split(',').map(s=>s.trim()).filter(Boolean);
- if(!user.email_verified_at||!user.mfa_secret||!user.mfa_verified||!ids.includes(user.id))throw new HttpError(403,'Funding administration requires authorized staff with verified email and MFA.');
-}
+export const requireFundingAdmin=user=>requireAdmin(user);
 export function sandboxEnabled(){return process.env.NOWPAYMENTS_SANDBOX_ENABLED==='true'&&!!process.env.NOWPAYMENTS_SANDBOX_API_KEY&&!!process.env.NOWPAYMENTS_SANDBOX_IPN_SECRET;}
 export function liveDepositsEnabled(){return process.env.NOWPAYMENTS_LIVE_DEPOSITS_ENABLED==='true'&&productionCredentialsConfigured();}
 export function usdAmount(input){
@@ -14,6 +12,7 @@ export function usdAmount(input){
  return `${cents/100n}.${String(cents%100n).padStart(2,'0')}`;
 }
 export function validateBankInstructions(value){
+ if(value?.schemaVersion===2)return validateUSBankInstructions(value);
  const fields=['beneficiary','bankName','accountNumber','routingOrSwift','currency','referenceInstructions'];
  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(key=>!fields.includes(key)))throw new HttpError(400,'Invalid bank instruction fields.');
  const result={};
@@ -69,7 +68,7 @@ export async function createProductionInvoice(user,amount){
 }
 export function providerInvoiceUrlForProduction(input){try{const url=new URL(input);if(url.protocol!=='https:'||url.username||url.password||url.port||url.hostname!=='nowpayments.io')throw new Error();return url.href;}catch{throw new HttpError(502,'Provider returned an unrecognized production checkout URL.');}}
 export async function updateBankInstructions(user,input){
- requireFundingAdmin(user);
+ requireAdmin(user,{superOnly:true});
  if(!await checkPassword(input.currentPassword,user.password_hash))throw new HttpError(401,'Confirm your current password.');
  const instructions=validateBankInstructions(input.instructions),sql=db();
  // Serialize edits and reject stale revisions. Never publish instructions to customers yet.
@@ -89,4 +88,27 @@ export function validateProductionSettlement({requestAmount,callbackStatus,provi
  if(!payCurrency||typeof payCurrency!=='string'||payCurrency.trim().length<2||payCurrency.length>20)throw new HttpError(409,'Provider settlement asset is missing.');
  if(!payNetwork||typeof payNetwork!=='string'||payNetwork.trim().length<2||payNetwork.length>80)throw new HttpError(409,'Provider settlement network is missing.');
  return {settledAmount:amount,payCurrency:payCurrency.trim().toLowerCase(),payNetwork:payNetwork.trim().toLowerCase()};
+}
+
+export function validateUSBankInstructions(value){
+ const required=['beneficiary','beneficiaryAddress','bankName','bankAddress','accountNumber','accountType','currency','referenceInstructions','methods'];
+ const optional=['achRouting','wireRouting','swift','intermediaryBank','intermediaryRouting','intermediaryAccount','fbo','additionalInstructions'];
+ const allowed=['schemaVersion',...required,...optional];
+ if(Object.keys(value).some(key=>!allowed.includes(key)))throw new HttpError(400,'Invalid bank instruction fields.');
+ const result={schemaVersion:2};
+ for(const key of [...required,...optional]){
+  const text=value[key]??'';
+  if(typeof text!=='string'||text.length>500||/[\x00-\x1f]/.test(text)||required.includes(key)&&!text.trim())throw new HttpError(400,`Invalid ${key}.`);
+  result[key]=text.trim();
+ }
+ if(result.currency!=='USD'||!['checking','savings'].includes(result.accountType)||!['ach','wire','both'].includes(result.methods))throw new HttpError(400,'Select USD, account type and transfer methods.');
+ if(!/^\d{4,17}$/.test(result.accountNumber))throw new HttpError(400,'Account number must contain 4–17 digits.');
+ for(const [key,needed] of [['achRouting',result.methods!=='wire'],['wireRouting',result.methods!=='ach'],['intermediaryRouting',false]]){
+  const routing=result[key];
+  if(!routing&&!needed)continue;
+  if(!/^\d{9}$/.test(routing)||/^0+$/.test(routing)||[...routing].reduce((sum,d,i)=>sum+Number(d)*[3,7,1][i%3],0)%10!==0)throw new HttpError(400,`Invalid ${key}: enter a nine-digit ABA routing number with a valid checksum.`);
+ }
+ if(result.swift&&!/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(result.swift))throw new HttpError(400,'Invalid SWIFT/BIC.');
+ if((result.intermediaryRouting||result.intermediaryAccount)&&!result.intermediaryBank)throw new HttpError(400,'Enter the intermediary bank name.');
+ return result;
 }

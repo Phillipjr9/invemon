@@ -35,7 +35,7 @@ if(accountReady){
  if(write){
   console.log('WRITE TESTS ENABLED: may send transactional email to the owned test address; temporary account will be deleted.');
   try{
-   const registration=await request('account',{method:'POST',data:{action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,email,password,name:'Deployment smoke test',country:'United States',risk:'Balanced'}});
+   const registration=await request('account',{method:'POST',data:{action:'register',policyVersion:'2026-11-27.2',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,email,password,name:'Deployment smoke test',country:'United States',risk:'Balanced'}});
    expect(registration.status===201&&registration.value.account?.serverUserId,'Test registration failed. Use an unused owned email; no existing account will be deleted.');created=true;
    await check('session restoration',async()=>{const r=await request('account');expect(r.status===200&&r.value.account?.email===email.toLowerCase(),'Session did not restore.');});
    let revision;

@@ -28,9 +28,9 @@ async function call(handler,{method='POST',data,cookie,origin='https://invemon.e
 let owner,other,agent,id,revision;
 const password='a long unique password!';
 test('support requires sessions, isolates owners and ignores client role claims',async()=>{
- owner=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Owner',email:'owner@example.com',password}});
- other=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Other',email:'other@example.com',password}});
- agent=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Agent',email:'agent@example.com',password}});
+ owner=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.2',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Owner',email:'owner@example.com',password}});
+ other=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.2',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Other',email:'other@example.com',password}});
+ agent=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.2',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Agent',email:'agent@example.com',password}});
  const created=await call(auth,{cookie:owner.cookie,data:{action:'support',subject:'Cannot save workspace',message:'My sample workspace save failed.'}});id=created.value.id;
  assert.equal((await call(support,{method:'GET'})).status,401);
  assert.equal((await call(support,{method:'GET',cookie:other.cookie,query:{id}})).status,404);

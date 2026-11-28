@@ -39,8 +39,8 @@ test('decimal input, sandbox host allowlist, and recursive callback signature va
 });
 test('funding requires owner session; sandbox disabled by default, sign-in still required',async()=>{
  assert.equal((await call(funding,{method:'GET'})).status,401);
- owner=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Funding Owner',email:'funding@example.com',password}});uid=owner.value.account.serverUserId;
- other=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Other Owner',email:'other-funding@example.com',password}});
+ owner=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.2',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Funding Owner',email:'funding@example.com',password}});uid=owner.value.account.serverUserId;
+ other=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.2',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Other Owner',email:'other-funding@example.com',password}});
  assert.equal((await call(funding,{data:{action:'create-invoice',amount:'10'}})).status,401);
  assert.equal((await call(funding,{cookie:owner.cookie,origin:'https://evil.example',data:{action:'create-invoice',amount:'10'}})).status,403);
  assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'create-invoice',amount:'10'}})).status,503);
@@ -67,7 +67,7 @@ test('forged, unmatched and replayed callbacks cannot credit balances; events de
  assert.equal((await pg.query('SELECT * FROM demo_workspaces')).rows.length,0);
 });
 test('bank drafts require independent allowlist MFA and password; stale revisions fail and customers cannot read',async()=>{
- assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'bank-status'}})).status,403);process.env.FUNDING_ADMIN_IDS=uid;
+ assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'bank-status'}})).status,403);process.env.FUNDING_ADMIN_IDS=uid;process.env.SUPER_ADMIN_IDS=uid;
  assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'bank-status'}})).status,403);
  await pg.query("UPDATE app_users SET email_verified_at=now(),mfa_secret='test-secret' WHERE id=$1",[uid]);await pg.query('UPDATE app_sessions SET mfa_verified=true WHERE user_id=$1',[uid]);
  const instructions={beneficiary:'TEST ONLY',bankName:'Fictional Bank',accountNumber:'TEST-123',routingOrSwift:'TEST',currency:'USD',referenceInstructions:'Draft test'};
@@ -100,3 +100,59 @@ test('production payment lookup uses fixed authenticated host, rejects identity 
 test('production deposit replay posts exactly once to the request owner in exact USD cents',async()=>{const productionUser=randomUUID(),productionRequest=randomUUID();await pg.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,'production-funding@example.invalid','test')",[productionUser]);await pg.query("INSERT INTO funding_requests(id,user_id,amount_usd,environment,provider_id,status) VALUES($1,$2,10.25,'production','123456','waiting')",[productionRequest,productionUser]);const payment='456789',evidence='provider-status:456789';const first=await pg.query('SELECT reconcile_production_deposit($1,$2,$3,'+"'finished'"+',$4::numeric,$5) AS id',[productionRequest,payment,'123456','10.25',evidence]);const second=await pg.query('SELECT reconcile_production_deposit($1,$2,$3,'+"'finished'"+',$4::numeric,$5) AS id',[productionRequest,payment,'123456','10.25',evidence]);assert.equal(first.rows[0].id,second.rows[0].id);assert.equal((await pg.query('SELECT count(*)::int n FROM ledger_journals WHERE posting_key=$1',['nowpayments-deposit:'+payment])).rows[0].n,1);assert.equal((await pg.query('SELECT count(*)::int n FROM ledger_entries e JOIN ledger_journals j ON j.id=e.journal_id WHERE j.posting_key=$1',['nowpayments-deposit:'+payment])).rows[0].n,2);assert.deepEqual((await pg.query('SELECT units::text FROM ledger_entries e JOIN ledger_journals j ON j.id=e.journal_id WHERE j.posting_key=$1 ORDER BY line',['nowpayments-deposit:'+payment])).rows.map(r=>r.units),['1025','-1025']);assert.equal((await pg.query('SELECT credited_journal_id FROM funding_requests WHERE id=$1',[productionRequest])).rows[0].credited_journal_id,first.rows[0].id);});
 test('concurrent duplicate production reconciliation cannot double-credit',async()=>{const user=randomUUID(),request=randomUUID();await pg.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,'concurrent@example.invalid','test')",[user]);await pg.query("INSERT INTO funding_requests(id,user_id,amount_usd,environment,provider_id,status) VALUES($1,$2,25.00,'production','777','waiting')",[request,user]);const payment='888',evidence='provider-status:888';const concurrent=await Promise.all([pg.query('SELECT reconcile_production_deposit($1,$2,$3,'+"'finished'"+',$4::numeric,$5) AS id',[request,payment,'777','25.00',evidence]),pg.query('SELECT reconcile_production_deposit($1,$2,$3,'+"'finished'"+',$4::numeric,$5) AS id',[request,payment,'777','25.00',evidence]),pg.query('SELECT reconcile_production_deposit($1,$2,$3,'+"'finished'"+',$4::numeric,$5) AS id',[request,payment,'777','25.00',evidence])]);assert.equal(concurrent[0].rows[0].id,concurrent[1].rows[0].id);assert.equal(concurrent[0].rows[0].id,concurrent[2].rows[0].id);assert.equal((await pg.query('SELECT count(*)::int n FROM ledger_journals WHERE posting_key=$1',['nowpayments-deposit:'+payment])).rows[0].n,1);assert.equal((await pg.query('SELECT count(*)::int n FROM ledger_entries e JOIN ledger_journals j ON j.id=e.journal_id WHERE j.posting_key=$1',['nowpayments-deposit:'+payment])).rows[0].n,2);assert.deepEqual((await pg.query('SELECT units::text FROM ledger_entries e JOIN ledger_journals j ON j.id=e.journal_id WHERE j.posting_key=$1 ORDER BY line',['nowpayments-deposit:'+payment])).rows.map(r=>r.units),['2500','-2500']);});
 test('production settlement rejects pending, partial, failed, expired and refunded states and mismatches',()=>{for(const status of ['waiting','confirming','partially_paid','failed','expired','refunded'])assert.throws(()=>validateProductionSettlement({requestAmount:10,callbackStatus:status,providerStatus:status,callbackOrder:'order',callbackInvoice:'invoice',callbackPayment:'payment',providerOrder:'order',providerInvoice:'invoice',providerPayment:'payment',priceAmount:10,priceCurrency:'usd',purchaseAmount:10,purchaseCurrency:'usd',payCurrency:'usdt',payNetwork:'tron'}),/final settled|identity|amount|currency|asset|network/);for(const patch of [{priceAmount:9},{priceCurrency:'eur'},{payCurrency:''},{payNetwork:''},{providerOrder:'wrong'}, {providerInvoice:'wrong'}, {providerPayment:'wrong'}])assert.throws(()=>validateProductionSettlement({requestAmount:10,callbackStatus:'finished',providerStatus:'finished',callbackOrder:'order',callbackInvoice:'invoice',callbackPayment:'payment',providerOrder:'order',providerInvoice:'invoice',providerPayment:'payment',priceAmount:10,priceCurrency:'usd',purchaseAmount:10,purchaseCurrency:'usd',payCurrency:'usdt',payNetwork:'tron',...patch}),/final settled|identity|amount|currency|asset|network/);assert.deepEqual(validateProductionSettlement({requestAmount:10,callbackStatus:'finished',providerStatus:'finished',callbackOrder:'order',callbackInvoice:'invoice',callbackPayment:'payment',providerOrder:'order',providerInvoice:'invoice',providerPayment:'payment',priceAmount:10,priceCurrency:'usd',purchaseAmount:10,purchaseCurrency:'usd',payCurrency:'USDT',payNetwork:'Tron'}),{settledAmount:10,payCurrency:'usdt',payNetwork:'tron'});});
+
+const {verifyProductionSettlement}=await import('../server/production-settlement.mjs');
+test('strict production evidence rejects missing fields, mismatches and underpayment without rounding',()=>{
+ const request={id:randomUUID(),provider_id:'123',amount_usd:'10.25'};
+ const evidence={order_id:request.id,invoice_id:'123',payment_id:'456',payment_status:'finished',price_currency:'usd',price_amount:'10.25',pay_currency:'usdt',network:'eth',pay_amount:'10.25',actually_paid:'10.25'};
+ assert.equal(verifyProductionSettlement(request,evidence,evidence).amount,'10.25');
+ for(const field of ['order_id','invoice_id','payment_id','price_currency','price_amount','pay_currency','network','pay_amount','actually_paid']){
+  const missing={...evidence};delete missing[field];assert.throws(()=>verifyProductionSettlement(request,evidence,missing),undefined,field);
+ }
+ for(const patch of [{order_id:randomUUID()},{invoice_id:'999'},{payment_id:'999'},{price_currency:'eur'},{price_amount:'10.2500001'},{pay_currency:'btc'},{network:'bsc'},{actually_paid:'10.249999999999999999'},{payment_status:'refunded'}])assert.throws(()=>verifyProductionSettlement(request,evidence,{...evidence,...patch}));
+ assert.throws(()=>verifyProductionSettlement({...request,requested_network:'bsc'},evidence,evidence));
+ assert.throws(()=>verifyProductionSettlement({...request,provider_payment_id:'999'},evidence,evidence));
+});
+test('real callback route applies strict provider validation before a ledger credit',async()=>{
+ process.env.NOWPAYMENTS_LIVE_DEPOSITS_ENABLED='true';
+ const id=randomUUID();
+ await pg.query("INSERT INTO funding_requests(id,user_id,amount_usd,environment,provider_id,status) VALUES($1,$2,10.25,'production','987','waiting')",[id,uid]);
+ const payload={order_id:id,invoice_id:'987',payment_id:'654',payment_status:'finished',price_currency:'usd',price_amount:'10.25',pay_currency:'usdt',network:'eth',pay_amount:'10.25',actually_paid:'10.25'};
+ const signature=createHmac('sha512',process.env.NOWPAYMENTS_IPN_SECRET).update(JSON.stringify(canonical(payload))).digest('hex');
+ const original=globalThis.fetch;
+ try{
+  for(const patch of [{order_id:undefined},{price_currency:undefined},{network:'bsc'},{actually_paid:'10.24'}]){
+   globalThis.fetch=async()=>new Response(JSON.stringify({...payload,...patch}));
+   assert.equal((await call(ipn,{data:payload,signature})).status,409);
+  }
+  assert.equal((await pg.query('SELECT credited_journal_id FROM funding_requests WHERE id=$1',[id])).rows[0].credited_journal_id,null);
+  globalThis.fetch=async()=>new Response(JSON.stringify(payload));
+  const first=await call(ipn,{data:payload,signature});assert.equal(first.status,200);assert.equal(first.value.credited,true);
+  const replay=await call(ipn,{data:payload,signature});assert.equal(replay.status,200);assert.equal(replay.value.journalId,first.value.journalId);
+ }finally{globalThis.fetch=original;delete process.env.NOWPAYMENTS_LIVE_DEPOSITS_ENABLED;}
+});
+
+const {validateUSBankInstructions}=await import('../server/funding.mjs');
+test('US bank drafts validate methods, separate ABA routing numbers and account details',()=>{
+ const draft={schemaVersion:2,beneficiary:'Business LLC',beneficiaryAddress:'1 Test St, Newark, NJ 07102, US',bankName:'Test Bank',bankAddress:'2 Test St, Newark, NJ 07102, US',accountNumber:'0012345678',accountType:'checking',currency:'USD',methods:'both',achRouting:'021000021',wireRouting:'021000021',referenceInstructions:'Include account reference'};
+ assert.equal(validateUSBankInstructions(draft).accountNumber,'0012345678');
+ for(const patch of [{achRouting:''},{wireRouting:'123456789'},{currency:'EUR'},{accountNumber:'1e10'},{accountType:'other'},{beneficiaryAddress:''},{intermediaryRouting:'021000021'},{password:'secret'}])assert.throws(()=>validateUSBankInstructions({...draft,...patch}));
+ assert.equal(validateUSBankInstructions({...draft,methods:'ach',wireRouting:''}).methods,'ach');
+ assert.equal(validateUSBankInstructions({...draft,methods:'wire',achRouting:''}).methods,'wire');
+});
+test('US bank instructions persist as an owner-restricted unpublished revision',async()=>{
+ const current=(await pg.query('SELECT max(revision)::text revision FROM bank_instruction_versions')).rows[0].revision;
+ const instructions={schemaVersion:2,beneficiary:'Business LLC',beneficiaryAddress:'1 Test St, Newark, NJ 07102, US',bankName:'Test Bank',bankAddress:'2 Test St, Newark, NJ 07102, US',accountNumber:'0012345678',accountType:'checking',currency:'USD',methods:'both',achRouting:'021000021',wireRouting:'021000021',referenceInstructions:'Include customer reference'};
+ const data={action:'bank-update',revision:current,instructions,currentPassword:password};
+ assert.equal((await call(funding,{cookie:other.cookie,data})).status,403);
+ const saved=await call(funding,{cookie:owner.cookie,data});assert.equal(saved.status,200);assert.equal(saved.value.published,false);
+ assert.equal((await call(funding,{cookie:owner.cookie,data})).status,409);
+ const loaded=await call(funding,{cookie:owner.cookie,data:{action:'bank-status'}});assert.equal(loaded.value.bank.instructions.accountNumber,'0012345678');assert.equal(loaded.value.bank.instructions.schemaVersion,2);
+ assert.equal((await call(funding,{cookie:other.cookie,data:{action:'bank-status'}})).status,403);
+});
+test('ordinary admin cannot modify bank instructions even with a valid session and password',async()=>{
+ delete process.env.SUPER_ADMIN_IDS;
+ await pg.query('DELETE FROM app_rate_limits');
+ try{assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'bank-update',revision:'0',instructions:{},currentPassword:password,role:'super_admin'}})).status,403);}
+ finally{process.env.SUPER_ADMIN_IDS=uid;}
+});
