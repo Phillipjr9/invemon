@@ -1,8 +1,10 @@
+import {adminRole} from '../admin-roles.mjs';
 import {requireLegalAcceptance,legalAcceptanceQueries} from '../legal.mjs';
 import { consumeSecondFactor, mfaConfigured } from '../mfa.mjs';
 import { requestAccountLink, consumeAccountLink } from '../account-links.mjs';
 import { emailConfigured, notificationInsert, notificationBucket, tryNotify, attemptUserNotifications } from '../notifications.mjs';
-import { db, body, guard, headers, session, account, profile, hashPassword, checkPassword, issueSession, clearSession, rateLimit, audit, sha, randomUUID, HttpError, fail } from '../core.mjs';
+import { db, body, guard, headers, session, account as baseAccount, profile, hashPassword, checkPassword, issueSession, clearSession, rateLimit, audit, sha, randomUUID, HttpError, fail } from '../core.mjs';
+const account=user=>({...baseAccount(user),adminRole:adminRole(user)});
 export default async function handler(req,res) {
  headers(res);
  try {
@@ -18,7 +20,7 @@ export default async function handler(req,res) {
    const data=profile(input), passwordHash=await hashPassword(input.password), id=randomUUID();
    try { const sql=db(); await sql.transaction([sql`INSERT INTO app_users(id,email,password_hash,profile) VALUES (${id},${email},${passwordHash},${JSON.stringify(data)}::jsonb)`,...legalAcceptanceQueries(sql,id),notificationInsert(sql,id,'welcome',{name:data.name},`welcome:${id}`)]);} catch(error){if(error.code==='23505')throw new HttpError(409,'Unable to create this account. Try signing in instead.');throw error;}
    await issueSession(res,id);await audit(id,'account.created');await attemptUserNotifications(id);
-   return res.status(201).json({account:{...data,email,serverUserId:id,emailVerified:false}});
+   return res.status(201).json({account:{...data,email,serverUserId:id,emailVerified:false,adminRole:null}});
   }
   if(action==='login') {
    const email=String(input.email || '').trim().toLowerCase();
