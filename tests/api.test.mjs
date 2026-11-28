@@ -10,6 +10,7 @@ await pg.exec(fs.readFileSync(new URL('../db/004_support_threads.sql',import.met
 await pg.exec(fs.readFileSync(new URL('../db/005_authenticator_mfa.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/006_funding_sandbox.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/007_production_ledger.sql',import.meta.url),'utf8'));
+await pg.exec(fs.readFileSync(new URL('../db/019_legal_acceptance.sql',import.meta.url),'utf8'));
 function query(text, values=[]) {
  return { text, values, then(resolve,reject) { return pg.query(text,values).then(result=>result.rows).then(resolve,reject); } };
 }
@@ -24,7 +25,7 @@ async function call(handler,{method='POST',data,cookie,origin='https://invemon.e
  await handler({method,body:data,headers:{origin,cookie,'content-type':'application/json','x-forwarded-for':ip}},{setHeader(k,v){headers[k.toLowerCase()]=v;},status(s){status=s;return this;},json(v){value=v;return this;}});
  return {status,value,headers,cookie:headers['set-cookie']?.split(';')[0]};
 }
-const registration={action:'register',email:'owner@example.com',password:'a long unique password!',name:'Owner',country:'United States',risk:'Growth'};
+const registration={action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,email:'owner@example.com',password:'a long unique password!',name:'Owner',country:'United States',risk:'Growth'};
 let owner,other;
 test('same-origin guard and unauthenticated workspace access',async()=>{
  assert.equal((await call(auth,{data:registration,origin:'https://attacker.example'})).status,403);

@@ -9,6 +9,7 @@ await pg.exec(fs.readFileSync(new URL('../db/003_account_tokens.sql',import.meta
 await pg.exec(fs.readFileSync(new URL('../db/004_support_threads.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/005_authenticator_mfa.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/006_funding_sandbox.sql',import.meta.url),'utf8'));
+await pg.exec(fs.readFileSync(new URL('../db/019_legal_acceptance.sql',import.meta.url),'utf8'));
 function query(text, values=[]) {
  return { text, values, then(resolve,reject) { return pg.query(text,values).then(result=>result.rows).then(resolve,reject); } };
 }
@@ -36,8 +37,8 @@ test('decimal input, sandbox host allowlist, and recursive callback signature va
 });
 test('funding requires owner session; sandbox disabled by default, sign-in still required',async()=>{
  assert.equal((await call(funding,{method:'GET'})).status,401);
- owner=await call(auth,{data:{action:'register',name:'Funding Owner',email:'funding@example.com',password}});uid=owner.value.account.serverUserId;
- other=await call(auth,{data:{action:'register',name:'Other Owner',email:'other-funding@example.com',password}});
+ owner=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Funding Owner',email:'funding@example.com',password}});uid=owner.value.account.serverUserId;
+ other=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,name:'Other Owner',email:'other-funding@example.com',password}});
  assert.equal((await call(funding,{data:{action:'create-invoice',amount:'10'}})).status,401);
  assert.equal((await call(funding,{cookie:owner.cookie,origin:'https://evil.example',data:{action:'create-invoice',amount:'10'}})).status,403);
  assert.equal((await call(funding,{cookie:owner.cookie,data:{action:'create-invoice',amount:'10'}})).status,503);

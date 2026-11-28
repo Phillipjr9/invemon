@@ -1,3 +1,4 @@
+import {requireLegalAcceptance,legalAcceptanceQueries} from '../legal.mjs';
 import { consumeSecondFactor, mfaConfigured } from '../mfa.mjs';
 import { requestAccountLink, consumeAccountLink } from '../account-links.mjs';
 import { emailConfigured, notificationInsert, notificationBucket, tryNotify, attemptUserNotifications } from '../notifications.mjs';
@@ -12,9 +13,10 @@ export default async function handler(req,res) {
   if(action==='request-reset') { await requestAccountLink(req,'reset',input.email); return res.status(200).json({ok:true,message:'If an eligible account exists and delivery succeeds, a reset link will arrive shortly.'}); }
   if(action==='reset-password' || action==='verify-email') { const result=await consumeAccountLink(action==='reset-password'?'reset':'verify',input.token,input.password,res);return res.status(200).json(result); }
   if(action==='register') {
+   requireLegalAcceptance(input);
    const email=String(input.email || '').trim().toLowerCase();if(email.length>254||!/^\S+@\S+\.\S+$/.test(email))throw new HttpError(400,'Enter a valid email address.');
    const data=profile(input), passwordHash=await hashPassword(input.password), id=randomUUID();
-   try { const sql=db(); await sql.transaction([sql`INSERT INTO app_users(id,email,password_hash,profile) VALUES (${id},${email},${passwordHash},${JSON.stringify(data)}::jsonb)`,notificationInsert(sql,id,'welcome',{name:data.name},`welcome:${id}`)]);} catch(error){if(error.code==='23505')throw new HttpError(409,'Unable to create this account. Try signing in instead.');throw error;}
+   try { const sql=db(); await sql.transaction([sql`INSERT INTO app_users(id,email,password_hash,profile) VALUES (${id},${email},${passwordHash},${JSON.stringify(data)}::jsonb)`,...legalAcceptanceQueries(sql,id),notificationInsert(sql,id,'welcome',{name:data.name},`welcome:${id}`)]);} catch(error){if(error.code==='23505')throw new HttpError(409,'Unable to create this account. Try signing in instead.');throw error;}
    await issueSession(res,id);await audit(id,'account.created');await attemptUserNotifications(id);
    return res.status(201).json({account:{...data,email,serverUserId:id,emailVerified:false}});
   }
@@ -73,13 +75,14 @@ export default async function handler(req,res) {
    return res.status(201).json({id,status:'open',emailStatus:'Check Email notifications for the acknowledgment status; delivery depends on your preferences and provider configuration.'});
   }
   if(action==='export') {
+   const legalAcceptance=await db()`SELECT policy_version,policy_digest,terms_accepted,privacy_acknowledged,risk_acknowledged,adult_confirmed,source,accepted_at FROM account_legal_acceptances WHERE user_id=${user.id}`;
    const workspace=await db()`SELECT revision,snapshot,updated_at FROM demo_workspaces WHERE user_id=${user.id}`;
    const events=await db()`SELECT action,created_at FROM security_events WHERE user_id=${user.id} ORDER BY created_at DESC LIMIT 1000`;
    const tickets=await db()`SELECT id,subject,message,status,created_at FROM support_requests WHERE user_id=${user.id}`;
    const emails=await db()`SELECT type,status,created_at,accepted_at FROM email_outbox WHERE user_id=${user.id} ORDER BY created_at DESC LIMIT 1000`;
    const supportMessages=await db()`SELECT m.id,m.request_id,m.actor_role,m.message,m.created_at FROM support_messages m JOIN support_requests r ON r.id=m.request_id WHERE r.user_id=${user.id} AND m.visibility='public' ORDER BY m.created_at DESC LIMIT 1000`;
    const preferences=await db()`SELECT sign_in,support_received,workspace_saved FROM email_preferences WHERE user_id=${user.id}`;
-   return res.status(200).json({supportMessages,emailHistory:emails,emailPreferences:preferences[0]||null,account:account(user),workspace:workspace[0]||null,events,tickets,notice:'Account profile, support and security data. The workspace field is an archived simulation snapshot, not money or holdings. This export is not a financial or tax statement.'});
+   return res.status(200).json({legalAcceptance:legalAcceptance[0]||null,supportMessages,emailHistory:emails,emailPreferences:preferences[0]||null,account:account(user),workspace:workspace[0]||null,events,tickets,notice:'Account profile, support and security data. The workspace field is an archived simulation snapshot, not money or holdings. This export is not a financial or tax statement.'});
   }
   throw new HttpError(400,'Unsupported action. Live transfers and trading are not enabled.');
  } catch(error){return fail(res,error);}

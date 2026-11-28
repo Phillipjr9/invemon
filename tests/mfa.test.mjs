@@ -8,6 +8,7 @@ await pg.exec(fs.readFileSync(new URL('../db/002_email_notifications.sql',import
 await pg.exec(fs.readFileSync(new URL('../db/003_account_tokens.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/004_support_threads.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/005_authenticator_mfa.sql',import.meta.url),'utf8'));
+await pg.exec(fs.readFileSync(new URL('../db/019_legal_acceptance.sql',import.meta.url),'utf8'));
 function query(text, values=[]) {
  return { text, values, then(resolve,reject) { return pg.query(text,values).then(result=>result.rows).then(resolve,reject); } };
 }
@@ -44,7 +45,7 @@ test('authenticated encryption binds secret to user and requires the configured 
  process.env.MFA_ENCRYPTION_KEY='c'.repeat(64);
 });
 test('setup requires session, password, verified email and server key; only encrypted pending secret stored',async()=>{
- owner=await call(auth,{data:{action:'register',email:'mfa@example.com',name:'MFA Owner',password}});uid=owner.value.account.serverUserId;oldCookie=owner.cookie;
+ owner=await call(auth,{data:{action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,email:'mfa@example.com',name:'MFA Owner',password}});uid=owner.value.account.serverUserId;oldCookie=owner.cookie;
  assert.equal((await call(mfa,{data:{action:'setup',currentPassword:password}})).status,401);
  assert.equal((await call(mfa,{cookie:owner.cookie,data:{action:'setup',currentPassword:'wrong'}})).status,401);
  assert.equal((await call(mfa,{cookie:owner.cookie,data:{action:'setup',currentPassword:password}})).status,403);
