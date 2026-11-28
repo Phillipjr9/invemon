@@ -79,3 +79,13 @@ export async function updateBankInstructions(user,input){
  return {revision:rows[0].revision,published:false};
 }
 export const fundingEventHash=value=>sha(JSON.stringify(canonical(value)));
+export function validateProductionSettlement({requestAmount,callbackStatus,providerStatus,callbackOrder,callbackInvoice,callbackPayment,providerOrder,providerInvoice,providerPayment,priceAmount,priceCurrency,purchaseAmount,purchaseCurrency,payCurrency,payNetwork}){
+ if(callbackStatus!==providerStatus||providerStatus!== 'finished')throw new HttpError(202,'Payment is not in a final settled state.');
+ if(callbackOrder!==providerOrder||callbackInvoice!==providerInvoice||callbackPayment!==providerPayment)throw new HttpError(409,'Provider order, invoice or payment identity mismatch.');
+ const amount=Number(priceAmount),purchase=Number(purchaseAmount??priceAmount);
+ if(!Number.isFinite(amount)||Math.abs(amount-requestAmount)>0.000001||!Number.isFinite(purchase)||Math.abs(purchase-requestAmount)>0.000001)throw new HttpError(409,'Provider amount mismatch.');
+ if(String(priceCurrency||'usd').toLowerCase()!=='usd'||String(purchaseCurrency||'usd').toLowerCase()!=='usd')throw new HttpError(409,'Provider currency mismatch.');
+ if(!payCurrency||typeof payCurrency!=='string'||payCurrency.trim().length<2||payCurrency.length>20)throw new HttpError(409,'Provider settlement asset is missing.');
+ if(!payNetwork||typeof payNetwork!=='string'||payNetwork.trim().length<2||payNetwork.length>80)throw new HttpError(409,'Provider settlement network is missing.');
+ return {settledAmount:amount,payCurrency:payCurrency.trim().toLowerCase(),payNetwork:payNetwork.trim().toLowerCase()};
+}

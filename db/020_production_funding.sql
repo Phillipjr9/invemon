@@ -13,6 +13,13 @@ CREATE INDEX IF NOT EXISTS funding_requests_production_owner_idx ON funding_requ
 
 INSERT INTO ledger_assets(code,decimals) VALUES('USD',2) ON CONFLICT(code) DO NOTHING;
 
+ALTER TABLE funding_requests ADD COLUMN IF NOT EXISTS requested_asset text;
+ALTER TABLE funding_requests ADD COLUMN IF NOT EXISTS requested_network text;
+ALTER TABLE funding_requests ADD COLUMN IF NOT EXISTS provider_pay_currency text;
+ALTER TABLE funding_requests ADD COLUMN IF NOT EXISTS provider_network text;
+ALTER TABLE funding_requests ADD COLUMN IF NOT EXISTS reconciliation_status text NOT NULL DEFAULT 'unreconciled';
+ALTER TABLE funding_requests ADD COLUMN IF NOT EXISTS settled_at timestamptz;
+
 CREATE OR REPLACE FUNCTION reconcile_production_deposit(p_request uuid,p_payment text,p_invoice text,p_status text,p_usd numeric,p_evidence text)
 RETURNS uuid LANGUAGE plpgsql AS $$
 DECLARE request funding_requests%ROWTYPE; liability uuid; custody uuid; journal uuid; cents bigint;
@@ -40,3 +47,5 @@ BEGIN
  RETURN journal;
 END; $$;
 REVOKE ALL ON FUNCTION reconcile_production_deposit(uuid,text,text,text,numeric,text) FROM PUBLIC;
+
+UPDATE funding_requests SET reconciliation_status='unreconciled' WHERE reconciliation_status IS NULL;
