@@ -1,0 +1,1 @@
+export default function ContactLinks(){return <nav className="legal-links" aria-label="Contact Invemon"><a href="https://www.invemon.org">www.invemon.org</a><a href="mailto:support@invemon.org">Support: support@invemon.org</a><a href="mailto:payment@invemon.org">Payments: payment@invemon.org</a><a href="mailto:admin@invemon.org">Administration: admin@invemon.org</a></nav>;}

@@ -1,3 +1,4 @@
+import ContactLinks from '../components/ContactLinks';
 import { useEffect, useState, type FormEvent } from 'react';
 import { api, accountAction } from '../services/api';
 import { Wordmark } from './HomePage';
@@ -49,7 +50,7 @@ export default function SupportPage({ signedIn, onBack, onLogin }: { signedIn: b
   finally { setBusy(false); }
  }
  return <main className="support-page"><header className="support-header"><Wordmark /><button className="db-btn" onClick={onBack}>Back to workspace</button></header>
-  <div className="support-intro"><span className="support-eyebrow">A LITTLE GUIDANCE, WHEN YOU NEED IT</span><h1>{staff ? 'Support desk.' : 'Let’s work through it.'}</h1><p>{staff ? 'Restricted staff workspace. Access and updates are authorized on the server.' : 'A place for questions about your Invemon account and simulated workspace.'}</p><p>Never send passwords, identity documents, card numbers, wallet keys, or seed phrases. Not an emergency channel or investment advice.</p></div>
+  <ContactLinks/><div className="support-intro"><span className="support-eyebrow">A LITTLE GUIDANCE, WHEN YOU NEED IT</span><h1>{staff ? 'Support desk.' : 'Let’s work through it.'}</h1><p>{staff ? 'Restricted staff workspace. Access and updates are authorized on the server.' : 'A place for questions about your Invemon account and simulated workspace.'}</p><p>Never send passwords, identity documents, card numbers, wallet keys, or seed phrases. Not an emergency channel or investment advice.</p></div>
   {!signedIn ? <section className="support-panel"><h2>Sign in to contact support</h2><p>Your requests and replies are private to your account and authorized support staff.</p><button className="db-btn" onClick={onLogin}>Sign in</button></section> : <>
    {error && <p className="support-error" role="alert">{error} <button className="db-btn" disabled={busy} onClick={() => { setError(''); setReload(v => v + 1); }}>Reload requests</button></p>}
    {notice && <p className="support-notice" role="status">{notice}</p>}

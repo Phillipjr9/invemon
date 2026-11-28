@@ -26,7 +26,7 @@ export async function requestAccountLink(req, purpose, email, user) {
   const response = await fetch('https://api.resend.com/emails', {
    method:'POST', signal:AbortSignal.timeout(8000),
    headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json','Idempotency-Key':`account-link-${digest}`},
-   body:JSON.stringify({from:process.env.EMAIL_FROM,to:[target.email],subject,
+   body:JSON.stringify({from:process.env.EMAIL_FROM,to:[target.email],subject,...(process.env.EMAIL_REPLY_TO?{reply_to:process.env.EMAIL_REPLY_TO}:{}),
     ...renderEmail(purpose, {token:raw}, origin)}),
   });
   if (!response.ok || !(await response.json()).id) throw new Error('link_delivery_failed');
