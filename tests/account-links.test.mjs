@@ -8,6 +8,7 @@ await pg.exec(fs.readFileSync(new URL('../db/002_email_notifications.sql',import
 await pg.exec(fs.readFileSync(new URL('../db/003_account_tokens.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/004_support_threads.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/005_authenticator_mfa.sql',import.meta.url),'utf8'));
+await pg.exec(fs.readFileSync(new URL('../db/019_legal_acceptance.sql',import.meta.url),'utf8'));
 function query(text, values=[]) {
  return { text, values, then(resolve,reject) { return pg.query(text,values).then(result=>result.rows).then(resolve,reject); } };
 }
@@ -23,7 +24,7 @@ async function call(handler,{method='POST',data,cookie,origin='https://invemon.e
  return {status,value,headers,cookie:headers['set-cookie']?.split(';')[0]};
 }
 const {sha,checkPassword}=await import('../server/core.mjs');
-const registration={action:'register',email:'links@example.com',password:'original long password!',name:'Link Owner'};
+const registration={action:'register',policyVersion:'2026-11-27.1',termsAccepted:true,privacyAcknowledged:true,riskAcknowledged:true,adultConfirmed:true,email:'links@example.com',password:'original long password!',name:'Link Owner'};
 let owner, sent=[], deliveryStatus=200;
 const originalFetch=globalThis.fetch;
 globalThis.fetch=async(url,options)=>{ sent.push({url,body:JSON.parse(options.body)});return {ok:deliveryStatus===200,json:async()=>({id:'test-email'})}; };

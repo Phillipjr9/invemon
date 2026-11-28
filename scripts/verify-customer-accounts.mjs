@@ -27,7 +27,7 @@ try{
  const base=process.env.SERVER_TEST_BASE_URL||'http://localhost:5187';
  await page.goto(`${base}/#dashboard`);await page.getByRole('heading',{name:'Your next chapter.'}).waitFor();
  assert.equal(await page.getByText('Spoofed User',{exact:true}).count(),0);
- await page.goto(`${base}/#signup`);await page.getByLabel('Full name',{exact:true}).fill('Account Owner');await page.getByLabel('Email address',{exact:true}).fill('test@example.com');await page.getByLabel('Password',{exact:true}).fill('long account password!');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'Create account',exact:true}).click();
+ await page.goto(`${base}/#signup`);await page.getByLabel('Full name',{exact:true}).fill('Account Owner');await page.getByLabel('Email address',{exact:true}).fill('test@example.com');await page.getByLabel('Password',{exact:true}).fill('long account password!');for(const checkbox of await page.locator('.signup-legal input[type=checkbox]').all())await checkbox.check();await page.getByRole('button',{name:'Create account',exact:true}).click();
  await page.getByRole('heading',{name:'No recorded holdings'}).waitFor();
  await page.getByRole('region',{name:'Available cash'}).getByText('$0.00',{exact:true}).waitFor();
  await page.getByRole('contentinfo',{name:'Invemon platform footer'}).waitFor();

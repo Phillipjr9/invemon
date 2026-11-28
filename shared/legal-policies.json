@@ -1,0 +1,135 @@
+{
+  "version": "2026-11-27.1",
+  "publishedDate": "2026-11-27",
+  "reviewNotice": "Published operational policy draft. The operator’s legal identity, notice contact, service eligibility, regulatory position and jurisdiction-specific requirements must be finalized with qualified counsel before public launch. These pages do not certify legal compliance or override mandatory rights.",
+  "documents": [
+    {
+      "id": "terms",
+      "title": "Terms of Service",
+      "summary": "The rules for using your Invemon account.",
+      "sections": [
+        {
+          "heading": "About these terms",
+          "text": "These terms cover access to the Invemon website, account tools and any enabled internal crypto trading or funding/withdrawal features. Read them together with the Privacy Notice, Risk Disclosure and Funding & Withdrawal Conditions. Features depend on your account, location, configuration and available inventory. Creating an account is not approval for every service."
+        },
+        {
+          "heading": "Eligibility and account information",
+          "text": "You must be at least 18 and have legal capacity to enter an agreement. Use accurate information, keep it current, and use only accounts and funds you are authorized to control. A listed country or asset is not confirmation of eligibility or legal availability. Do not use services where prohibited or attempt to bypass eligibility, security or legal restrictions."
+        },
+        {
+          "heading": "Security and authorized use",
+          "text": "Use a unique password and protect your email, authenticator and recovery codes. You are responsible for safeguarding credentials and reporting suspected unauthorized access promptly through account support. Invemon will not ask for your password, wallet seed phrase or private key by email or support message. Do not upload identity documents or secrets to support. We do not guarantee reimbursement for losses; any responsibility must be assessed under applicable law and the facts."
+        },
+        {
+          "heading": "What the platform does",
+          "text": "Enabled crypto trades are internal ledger exchanges against business inventory at business-set rates. They are not necessarily on-chain transfers or executions on a public exchange. Asset listings, market data, projections and displayed valuations do not create holdings, prove custody or guarantee a trade. No stock or securities ownership is created by registration or an asset listing. No brokerage account is opened by registration."
+        },
+        {
+          "heading": "Quotes, fees and transaction finality",
+          "text": "Review the exact source/target assets and networks, quantity, fee, total debit and expiry before confirming. Business rates can include a spread and are not guaranteed to be the best market rate. Source fees round up and receiving quantities round down to supported precision. A quote is not a completed trade. Confirmation is subject to expiry, available unreserved customer funds and business inventory. Completed internal trades cannot be cancelled through the quote interface. Report disputed or erroneous records through support; no automatic reversal is promised. Statutory rights are not waived."
+        },
+        {
+          "heading": "Permitted conduct",
+          "text": "Do not engage in fraud, money laundering, sanctions evasion, market abuse, unauthorized account access, malicious automation, security attacks or misuse of another person’s bank account or wallet. Do not interfere with the service or submit false evidence. Service access or requests may be restricted for security, legal obligations, suspected abuse or operational issues, subject to applicable law. Restriction does not itself prove forfeiture of funds."
+        },
+        {
+          "heading": "Information, interruptions and liability",
+          "text": "Information is general and is not personalized investment, legal or tax advice. You are responsible for assessing suitability and tax obligations. Data, communications and services can be delayed, inaccurate or unavailable; no uninterrupted-service or return guarantee is made. Nothing here excludes liability, consumer remedies or duties that cannot lawfully be excluded, or authorizes loss of customer property."
+        },
+        {
+          "heading": "Closure, changes and concerns",
+          "text": "Use account settings or support for account closure, data requests, transaction disputes and complaints. Outstanding requests, accounting records or legal retention needs may prevent immediate deletion or payout. Material policy changes should be communicated with an updated version and any legally required renewed acceptance; this signup records only the displayed version. These pages do not impose mandatory arbitration, a chosen court, or a waiver of statutory complaint rights. Use support for the operator’s legal identity and formal notice details before relying on services; publication does not establish licensing or regulatory approval."
+        }
+      ]
+    },
+    {
+      "id": "privacy",
+      "title": "Privacy Notice",
+      "summary": "What the application processes and how to make a privacy request.",
+      "sections": [
+        {
+          "heading": "Scope and information collected",
+          "text": "Invemon processes account information such as name, email, country, selected risk profile, authentication records and account preferences. Financial features can process asset balances, internal journals, trade quotes and confirmations, withdrawal requests and saved payout destinations. Support messages and operational/security events are stored. Do not submit information you are not authorized to provide."
+        },
+        {
+          "heading": "Purpose and legal basis",
+          "text": "Information is used to create and secure accounts, perform requested operations, maintain accounting and audit records, handle support, prevent abuse and meet applicable legal duties. Depending on applicable law, processing may rely on performing the service agreement, legal obligations, legitimate security/operational interests or a separate consent where required. Acknowledging this notice is not consent to marketing, sale of data, identity-document collection or every optional processing activity."
+        },
+        {
+          "heading": "Service providers and third-party content",
+          "text": "The application uses hosting/database infrastructure and, when configured, an email delivery provider. Enabled payment processing uses NOWPayments. These providers receive data necessary for the corresponding operation and may apply their own terms/privacy notices. Bank or blockchain payouts are handled manually by authorized administrators and can involve the relevant payment networks. Embedded charts, market data, external links and images may cause your browser to contact third parties with their own practices. No promise is made that all third-party collection is blocked before consent."
+        },
+        {
+          "heading": "Cookies, local storage and security",
+          "text": "Authentication uses an HTTP-only session cookie. Browser storage can retain theme, interface preferences and legacy locally stored workspace settings; these are not proof of funds. Security controls include password hashing, session controls and encryption of saved destination details where configured. No online system is risk-free. Optional non-essential tracking must not be introduced without assessment and any required consent; this notice is not a cookie-consent management tool."
+        },
+        {
+          "heading": "Sharing, access and international processing",
+          "text": "Access is limited by application roles for account service, finance operations and support; authorized staff may see relevant records. Information may be disclosed where legally required or necessary to investigate abuse or protect rights, subject to law. Hosting, email, payment and content providers may process data in other countries. Exact provider arrangements, transfer safeguards and legal-controller details must be confirmed by the operator; no certification or transfer mechanism is promised by this page."
+        },
+        {
+          "heading": "Retention, deletion and your choices",
+          "text": "Retention depends on the purpose, security needs, accounting requirements and applicable law; there is no universal deletion deadline promised here. Account settings offer available profile, security and optional-email controls and an account-data export. Exports are not necessarily a complete regulatory data-access response. Some records can block automatic deletion; contact support for a closure/privacy review. Depending on law, you may have access, correction, deletion, restriction, objection, portability, consent-withdrawal or complaint rights, with applicable exceptions. Contact support without sending passwords or identity documents. Children under 18 must not register."
+        }
+      ]
+    },
+    {
+      "id": "risk",
+      "title": "Risk Disclosure",
+      "summary": "Understand the risks before funding or confirming a trade.",
+      "sections": [
+        {
+          "heading": "Loss and volatility",
+          "text": "Crypto assets can be highly volatile, illiquid or lose all value. You can lose the entire amount committed. Past performance, projections, displayed yields and market valuations do not guarantee returns, liquidity or redemption. Do not use money you cannot afford to lose."
+        },
+        {
+          "heading": "Business-inventory and counterparty risk",
+          "text": "Internal trades rely on business-owned inventory and internal accounting. The business sets the rate and may earn fees or spread, creating a conflict of interest. Ledger credits do not independently prove that wallet/bank assets exist, are segregated or can be redeemed promptly. There is business, insolvency, operational and liquidity risk. No insurance, reserve attestation, deposit protection or regulatory approval is represented by this interface."
+        },
+        {
+          "heading": "Price, precision and availability",
+          "text": "Quotes expire, and fees, spread and rounding affect what you receive. Market data may be delayed or differ from business quotes. Supported networks, assets and service availability may change. Customer reservations reduce spendable funds. Trades can fail when balances or inventory are insufficient, and service outages can prevent trading or withdrawal requests."
+        },
+        {
+          "heading": "Networks and manual withdrawals",
+          "text": "Internal settlement is not a blockchain transfer. Manual withdrawals involve review and external processing; approval is not payment and a ledger debit is not independent proof of receipt. Wrong networks, addresses, account details or missing memos can cause delay or irreversible loss. Crypto transactions can be irreversible. Banks, networks and providers can impose additional requirements and delays."
+        },
+        {
+          "heading": "Technology, law and taxes",
+          "text": "Cyberattacks, compromised credentials, software defects, provider failures, forks and protocol changes may affect access or value. Legal, regulatory and tax treatment can change by jurisdiction. Seek independent advice where appropriate. Accepting this disclosure does not waive non-waivable consumer rights or authorize arbitrary deductions."
+        }
+      ]
+    },
+    {
+      "id": "funding-conditions",
+      "title": "Funding & Withdrawal Conditions",
+      "summary": "Conditions for deposits, reserved funds and manual payouts.",
+      "sections": [
+        {
+          "heading": "Availability and permitted sources",
+          "text": "Deposit and withdrawal features are available only when enabled for your account, asset, network and location. Use only funds, bank accounts and wallets you are authorized to control. Do not send unsupported assets or networks or rely on a displayed directory as a deposit instruction. Registration and legal acceptance do not by themselves enable funding or payouts."
+        },
+        {
+          "heading": "Payment processing and crediting",
+          "text": "Where offered, crypto payment processing uses NOWPayments under the instructions and payment terms shown for that operation. Creating an invoice, sending a payment or receiving an email is not by itself a confirmed customer ledger credit. Payments can require confirmation, review and reconciliation. Incorrect networks, late/under/overpayments or unmatched payments require investigation. No universal processing time, refund entitlement beyond law, or automatic recovery is promised. Do not pay an additional unsolicited fee to unlock funds."
+        },
+        {
+          "heading": "Internal trading is separate",
+          "text": "An internal crypto exchange changes customer/business ledger balances only. It does not send a blockchain payment, convert a valuation automatically or guarantee withdrawal liquidity. Review the quoted source fee, total debit and target amount. No fee may be inferred from a marketing illustration; rely on the actual transaction disclosure."
+        },
+        {
+          "heading": "Withdrawal requests and reservations",
+          "text": "Saving a destination does not send money. A withdrawal request reserves the entered amount in the selected asset; no automatic conversion is performed. The current request workflow does not deduct a withdrawal fee itself. Any external fee or processing term must be disclosed and agreed before proceeding; these conditions do not authorize undisclosed extra charges. Keep sufficient unreserved funds and review masked destination details carefully."
+        },
+        {
+          "heading": "Manual review and payment status",
+          "text": "Crypto, ACH and wire payouts are processed manually by authorized administrators, not automatically by the request screen. Requests can be reviewed, approved or rejected. Approval keeps funds reserved and is not proof of payment. A supported rejection or customer cancellation releases the reservation; it is not a deposit. Approved requests may no longer be cancellable in the interface. Contact support promptly for questions. A debit record, payment reference or notification is not independent confirmation that the receiving bank or wallet received funds."
+        },
+        {
+          "heading": "Timing, corrections and complaints",
+          "text": "No fixed payout deadline is promised unless separately disclosed and accepted. Review, reconciliation, network/bank availability, fraud checks or applicable legal requirements can delay processing. Requests and payment attempts must not be duplicated after an uncertain response; inspect account history and retry only the same request where supported. Contact support with the reference for disputes, erroneous destinations, unmatched payments or refund requests. Recovery and refunds depend on facts, control of the funds and applicable law; no blanket no-refund rule or guaranteed recovery applies."
+        }
+      ]
+    }
+  ]
+}
