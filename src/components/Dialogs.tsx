@@ -4,6 +4,7 @@ import Icon from './Icon';
 
 export type InvestmentAccount = {
   serverUserId?: string;
+  adminRole?: 'admin' | 'super_admin' | null;
   emailVerified?: boolean;
   mfaEnabled?: boolean;
   name: string;

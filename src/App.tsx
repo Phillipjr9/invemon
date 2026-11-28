@@ -12,11 +12,11 @@ import HomePage from './pages/HomePage';
 import ServerAuthPage from './pages/ServerAuthPage';
 import { SERVER_ACCOUNTS, api, accountAction } from './services/api';
 
-type View = 'home' | 'signup' | 'login' | 'dashboard' | 'emails' | 'reset' | 'verify' | 'support' | 'funding' | 'admin' | 'withdrawals' | 'terms' | 'privacy' | 'risk' | 'funding-conditions';
+type View = 'home' | 'admin-login' | 'signup' | 'login' | 'dashboard' | 'emails' | 'reset' | 'verify' | 'support' | 'funding' | 'admin' | 'withdrawals' | 'terms' | 'privacy' | 'risk' | 'funding-conditions';
 const getView = (): View => {
   const path = window.location.hash.slice(1).split('?')[0];
   if(path === 'deposit') return 'funding';
-  return ['signup', 'login', 'dashboard', 'emails', 'reset', 'verify', 'support', 'funding', 'admin', 'withdrawals', 'terms', 'privacy', 'risk', 'funding-conditions'].includes(path) ? path as View : 'home';
+  return ['admin-login', 'signup', 'login', 'dashboard', 'emails', 'reset', 'verify', 'support', 'funding', 'admin', 'withdrawals', 'terms', 'privacy', 'risk', 'funding-conditions'].includes(path) ? path as View : 'home';
 };
 export default function App() {
   const [view, setView] = useState<View>(getView);
@@ -43,10 +43,15 @@ export default function App() {
   const signup = () => navigate('signup');
   const login = () => navigate('login');
   const dashboard = () => navigate('dashboard');
+  useEffect(() => {
+    if(sessionReady && account?.adminRole && (view==='login'||view==='admin-login')) navigate('admin');
+  }, [sessionReady, account?.adminRole, view]);
   return <>
     <ThemeToggle />
     {(view==='terms'||view==='privacy'||view==='risk'||view==='funding-conditions')&&<LegalPage documentId={view}/>}
-    {view === 'admin' && <AdminPage />}
+    {view === 'admin' && !sessionReady && <main className="login-main" role="status">Checking your account session…</main>}
+    {view === 'admin' && sessionReady && !account && <main className="login-main"><h1>Admin sign-in required</h1><a className="db-btn" href="#admin-login">Sign in to administration</a></main>}
+    {view === 'admin' && sessionReady && account && <><aside className="funding-page"><p>Administration requires verified email and an MFA-verified session. {(!account.emailVerified||!account.mfaEnabled)&&<>Complete your security setup in <a href="#dashboard">account settings</a>.</>}</p></aside><AdminPage /></>}
     {view === 'withdrawals' && <WithdrawalsPage />}
     {view === 'funding' && !sessionReady && <main className="login-main" role="status">Checking your account session…</main>}
     {view === 'funding' && sessionReady && <FundingPage account={SERVER_ACCOUNTS ? account : null} onBack={dashboard} onLogin={login} />}
@@ -54,7 +59,7 @@ export default function App() {
     {(view === 'reset' || view === 'verify') && <AccountLinkPage key={view} purpose={view} onLogin={login} />}
     {view === 'emails' && <main className="funding-page"><h1>Email previews are not part of the customer account</h1><button className="db-btn" onClick={home}>Back to home</button></main>}
     {view === 'home' && <HomePage onSignup={signup} onLogin={login} onExplore={dashboard} onSupport={() => navigate('support')} />}
-    {SERVER_ACCOUNTS && (view === 'signup' || view === 'login') && <ServerAuthPage key={view} register={view === 'signup'} onBack={home} onSwitch={view === 'signup' ? login : signup} onComplete={next => { setAccount(next); setSessionError(''); dashboard(); }} />}
+    {SERVER_ACCOUNTS && (view === 'signup' || view === 'login' || view === 'admin-login') && <ServerAuthPage key={view} register={view === 'signup'} onBack={home} onSwitch={view === 'signup' ? login : signup} onComplete={next => { setAccount(next); setSessionError(''); navigate(next.adminRole || view==='admin-login' ? 'admin' : 'dashboard'); }} />}
     {sessionError && <div role="alert" className="account-service-notice">{sessionError} <button type="button" onClick={() => window.location.reload()}>Retry connection</button></div>}
     {view === 'dashboard' && !sessionReady && <main className="login-main" role="status">Checking your account session…</main>}
     {view === 'dashboard' && sessionReady && <AccountDashboard account={account} onAccount={setAccount} onBack={home} onLogin={login} onSignOut={() => { void (async () => { try { if (SERVER_ACCOUNTS && account?.serverUserId) await accountAction('logout'); localStorage.removeItem('invemon-account'); setAccount(null); home(); } catch (err) { setSessionError(err instanceof Error ? err.message : 'Sign out failed.'); } })(); }} />}
