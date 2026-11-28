@@ -9,7 +9,6 @@ export function MobileShowcase({ onExplore }: { onExplore: () => void }) {
       <span className="iv-mobile-orbit" aria-hidden="true" />
       <span className="iv-mobile-stage-label">THE BIGGER PICTURE. ALWAYS WITH YOU.</span>
       <img src={asset('Phone-Mockup-B2GNQEM.png')} alt="Invemon mobile app concept showing a portfolio chart and investment overview on two phones" width="700" height="850" loading="lazy" />
-      <span className="iv-mobile-stage-note">MOBILE APP CONCEPT / ILLUSTRATIVE SCREENS</span>
     </div>
     <div className="iv-mobile-copy"><span className="iv-eyebrow">YOUR WORLD. IN YOUR HANDS.</span><h2>A little closer<br />to <em>your future.</em></h2><p>Your investments shouldn’t feel a world away. Get a clear view of your portfolio, explore opportunities, and keep your goals in sight—wherever the day takes you.</p><ul><li><Icon name="chart" size={19} /><span><strong>Your progress, at a glance.</strong>A considered overview of your investment journey.</span></li><li><Icon name="folders" size={19} /><span><strong>One place. A wider perspective.</strong>Explore your holdings and portfolio allocation.</span></li><li><Icon name="target" size={19} /><span><strong>Built around what matters.</strong>Keep your long-term ambitions in focus.</span></li></ul><button className="iv-btn" onClick={onExplore}>Explore the web demo <Icon name="arrow" size={18} /></button><small>Original mobile app concept shown. No app download is available.</small></div>
   </section>;
