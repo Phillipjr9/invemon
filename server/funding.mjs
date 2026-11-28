@@ -1,5 +1,6 @@
 import { createHmac,timingSafeEqual } from 'node:crypto';
 import { HttpError,db,checkPassword,randomUUID,sha } from './core.mjs';
+import { productionCredentialsConfigured } from './nowpayments-production.mjs';
 export function requireFundingAdmin(user){
  const ids=(process.env.FUNDING_ADMIN_IDS||'').split(',').map(s=>s.trim()).filter(Boolean);
  if(!user.email_verified_at||!user.mfa_secret||!user.mfa_verified||!ids.includes(user.id))throw new HttpError(403,'Funding administration requires authorized staff with verified email and MFA.');
