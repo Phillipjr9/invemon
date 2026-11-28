@@ -9,7 +9,9 @@ await pg.exec(fs.readFileSync(new URL('../db/003_account_tokens.sql',import.meta
 await pg.exec(fs.readFileSync(new URL('../db/004_support_threads.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/005_authenticator_mfa.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/006_funding_sandbox.sql',import.meta.url),'utf8'));
+await pg.exec(fs.readFileSync(new URL('../db/007_production_ledger.sql',import.meta.url),'utf8'));
 await pg.exec(fs.readFileSync(new URL('../db/019_legal_acceptance.sql',import.meta.url),'utf8'));
+await pg.exec(fs.readFileSync(new URL('../db/020_production_funding.sql',import.meta.url),'utf8'));
 function query(text, values=[]) {
  return { text, values, then(resolve,reject) { return pg.query(text,values).then(result=>result.rows).then(resolve,reject); } };
 }
@@ -25,7 +27,7 @@ async function call(handler,{method='POST',data,cookie,origin='https://invemon.e
  await handler({method,body:data,headers:{'x-nowpayments-sig':signature,origin,cookie,'content-type':'application/json','x-forwarded-for':ip}},{setHeader(k,v){headers[k.toLowerCase()]=v;},status(s){status=s;return this;},json(v){value=v;return this;}});
  return {status,value,headers,cookie:headers['set-cookie']?.split(';')[0]};
 }
-const {createHmac}=await import('node:crypto');
+const {createHmac,randomUUID}=await import('node:crypto');
 const {usdAmount,canonical,verifyIpn,providerInvoiceUrl,createSandboxInvoice}=await import('../server/funding.mjs');
 let owner,other,uid;
 const password='a long secure test password!';
@@ -95,3 +97,4 @@ test('production payment lookup uses fixed authenticated host, rejects identity 
   globalThis.fetch=async()=>new Response('secret response',{status:403});await assert.rejects(()=>readProductionPayment('123'),/HTTP 403/);
  }finally{globalThis.fetch=original;}
 });
+test('production deposit replay posts exactly once to the request owner in exact USD cents',async()=>{const productionUser=randomUUID(),productionRequest=randomUUID();await pg.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,'production-funding@example.invalid','test')",[productionUser]);await pg.query("INSERT INTO funding_requests(id,user_id,amount_usd,environment,provider_id,status) VALUES($1,$2,10.25,'production','123456','waiting')",[productionRequest,productionUser]);const payment='456789',evidence='provider-status:456789';const first=await pg.query('SELECT reconcile_production_deposit($1,$2,$3,'+"'finished'"+',$4::numeric,$5) AS id',[productionRequest,payment,'123456','10.25',evidence]);const second=await pg.query('SELECT reconcile_production_deposit($1,$2,$3,'+"'finished'"+',$4::numeric,$5) AS id',[productionRequest,payment,'123456','10.25',evidence]);assert.equal(first.rows[0].id,second.rows[0].id);assert.equal((await pg.query('SELECT count(*)::int n FROM ledger_journals WHERE posting_key=$1',['nowpayments-deposit:'+payment])).rows[0].n,1);assert.equal((await pg.query('SELECT count(*)::int n FROM ledger_entries e JOIN ledger_journals j ON j.id=e.journal_id WHERE j.posting_key=$1',['nowpayments-deposit:'+payment])).rows[0].n,2);assert.deepEqual((await pg.query('SELECT units::text FROM ledger_entries e JOIN ledger_journals j ON j.id=e.journal_id WHERE j.posting_key=$1 ORDER BY line',['nowpayments-deposit:'+payment])).rows.map(r=>r.units),['1025','-1025']);assert.equal((await pg.query('SELECT credited_journal_id FROM funding_requests WHERE id=$1',[productionRequest])).rows[0].credited_journal_id,first.rows[0].id);});
