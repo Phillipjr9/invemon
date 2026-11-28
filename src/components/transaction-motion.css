@@ -1,0 +1,29 @@
+/* Transaction feedback: no optimistic success, artificial percentages or hidden content. */
+.transaction-flow { --flow-ease:cubic-bezier(.2,.75,.25,1); position:relative; min-width:0; }
+.transaction-flow .db-btn { transition:background-color 160ms ease,border-color 160ms ease,box-shadow 160ms ease,transform 160ms var(--flow-ease); }
+.transaction-flow .db-btn:active:not(:disabled) { transform:translateY(1px); }
+.transaction-flow :is(input,select,textarea) { transition:border-color 160ms ease,box-shadow 160ms ease; }
+.transaction-flow :is(button,input,select,textarea,a):focus-visible { outline:2px solid currentColor; outline-offset:3px; }
+.transaction-flow :is([role=alert],[role=status]),.flow-panel { animation:flow-enter 240ms var(--flow-ease) both; }
+.transaction-flow [role=alert] { border-inline-start:3px solid currentColor; padding-inline-start:12px; }
+.transaction-flow .flow-success { border:1px solid var(--db-border,#82937380); border-inline-start:4px solid currentColor; border-radius:10px; padding:16px; }
+.flow-steps { display:flex; flex-wrap:wrap; gap:12px 24px; padding:0; margin:24px 0; list-style:none; font-size:13px; }
+.flow-steps li { display:flex; align-items:center; gap:8px; opacity:.65; transition:opacity 180ms ease; }
+.flow-steps li[aria-current=step] { opacity:1; font-weight:700; }
+.flow-steps .flow-step-number { display:inline-grid; place-items:center; width:28px; height:28px; flex-shrink:0; border:1px solid currentColor; border-radius:50%; }
+.flow-steps li[aria-current=step] .flow-step-number { box-shadow:0 0 0 3px var(--db-border,#82937335); }
+.flow-quote { margin-block:24px; padding:24px; border:1px solid var(--db-border,#82937380); border-radius:12px; }
+.flow-quote h3:focus,.flow-success:focus { outline:2px solid currentColor; outline-offset:4px; }
+.flow-expiry { width:100%; height:5px; accent-color:var(--db-accent,#859e72); display:block; margin-block:12px; }
+.flow-pending { display:flex; align-items:center; gap:10px; font-size:14px; min-height:24px; }
+.flow-pending::before { content:''; display:inline-block; flex:0 0 auto; width:14px; height:14px; border:2px solid currentColor; border-inline-end-color:transparent; border-radius:50%; animation:flow-turn 900ms linear infinite; }
+.transaction-flow .goal-cards>li,.transaction-flow .ledger-activity-list>li { animation:flow-enter 220ms var(--flow-ease) both; }
+@media(hover:hover) { .transaction-flow .db-btn:hover:not(:disabled) { transform:translateY(-1px); } }
+@keyframes flow-enter { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+@keyframes flow-turn { to { transform:rotate(360deg); } }
+@media(max-width:480px) { .flow-quote { padding:18px 14px; } .flow-steps { gap:10px 14px; } }
+@media(prefers-reduced-motion:reduce) {
+ .transaction-flow *, .transaction-flow *::before, .transaction-flow *::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; }
+ .transaction-flow .db-btn:is(:hover,:active) { transform:none!important; }
+ .flow-pending::before { border-inline-end-color:currentColor; border-style:dotted; }
+}

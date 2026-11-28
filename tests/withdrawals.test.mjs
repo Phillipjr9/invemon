@@ -73,3 +73,23 @@ test('request identity includes destination and immutable requests preserve snap
  const foreign=randomUUID();await assert.rejects(pg.query('SELECT request_customer_withdrawal($1,$2,$3,$4,$5,$6)',[randomUUID(),other,account,destination,'1','foreign']),/not found/);
  delete process.env.WITHDRAWAL_ENCRYPTION_KEY;assert.equal((await call(bank)).status,503);assert.equal((await call()).body.submissionEnabled,false);
 });
+test('withdrawal event emails are deduplicated, owner-bound, private and approval never says paid',async()=>{
+ const emails=(await pg.query('SELECT user_id,type,payload,event_key FROM email_outbox ORDER BY created_at')).rows;
+ assert.equal(emails.filter(e=>e.type==='withdrawal_requested').length,2);
+ assert.equal(emails.filter(e=>e.type==='withdrawal_cancelled').length,1);
+ assert.equal(emails.filter(e=>e.type==='withdrawal_approved').length,1);
+ assert.equal(emails.filter(e=>e.type==='withdrawal_rejected').length,1);
+ assert.ok(emails.every(e=>e.user_id===user&&Object.keys(e.payload).sort().join(',')==='occurredAt,reference'));
+ assert.equal(JSON.stringify(emails).includes('PRIVATE ADMIN NOTE'),false);assert.equal(JSON.stringify(emails).includes(bank.account),false);
+ const {renderEmail}=await import('../server/email-templates.mjs');const approved=renderEmail('withdrawal_approved',emails.find(e=>e.type==='withdrawal_approved').payload);
+ assert.match(approved.text,/Approval is not payment/);assert.match(approved.text,/Funds remain held/);
+});
+test('reviewing email omits staff notes and a queue insertion failure rolls back a new withdrawal hold',async()=>{
+ const id=randomUUID();await pg.query('SELECT request_customer_withdrawal($1,$2,$3,$4,$5,$6)',[id,user,account,destination,'100','mail-review-test']);
+ await pg.query('SELECT admin_review_withdrawal($1,$2,$3,0,$4,$5)',[randomUUID(),id,user,'reviewing','SENSITIVE STAFF NOTE']);
+ const mail=(await pg.query("SELECT payload FROM email_outbox WHERE type='withdrawal_reviewing'")).rows;assert.equal(mail.length,1);assert.equal(mail[0].payload.reference,id);assert.equal(JSON.stringify(mail).includes('SENSITIVE'),false);
+ const before=(await pg.query('SELECT available_units FROM ledger_spendable_balances WHERE id=$1',[account])).rows[0].available_units;
+ await pg.exec("CREATE FUNCTION fail_withdrawal_mail() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test queue failure'; END; $$;CREATE TRIGGER fail_withdrawal_mail BEFORE INSERT ON email_outbox FOR EACH ROW EXECUTE FUNCTION fail_withdrawal_mail()");
+ const failedId=randomUUID();await assert.rejects(pg.query('SELECT request_customer_withdrawal($1,$2,$3,$4,$5,$6)',[failedId,user,account,destination,'100','mail-rollback-test']),/test queue failure/);
+ await pg.exec('DROP TRIGGER fail_withdrawal_mail ON email_outbox');assert.equal((await pg.query('SELECT available_units FROM ledger_spendable_balances WHERE id=$1',[account])).rows[0].available_units,before);assert.equal((await pg.query('SELECT count(*) FROM withdrawal_requests WHERE id=$1',[failedId])).rows[0].count,0);
+});

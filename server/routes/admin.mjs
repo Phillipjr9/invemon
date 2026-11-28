@@ -1,3 +1,4 @@
+import {attemptUserNotifications} from '../notifications.mjs';
 import {inventoryView,inventoryChange} from '../admin-inventory.mjs';
 import {db,headers,guard,session,body,HttpError,fail,rateLimit,checkPassword,randomUUID} from '../core.mjs';
 import {requireFundingAdmin} from '../funding.mjs';
@@ -49,6 +50,10 @@ export default async function handler(req,res){
   if(!await checkPassword(input.currentPassword,user.password_hash))throw new HttpError(401,'Confirm your current password for this admin action.');
   try{
    const result=await sql`SELECT admin_review_withdrawal(${randomUUID()}::uuid,${input.id}::uuid,${user.id}::uuid,${input.revision},${input.decision},${input.note.trim()}) AS revision`;
+   try{
+    const recipients=await sql`SELECT user_id FROM withdrawal_requests WHERE id=${input.id}`;
+    if(recipients[0])await attemptUserNotifications(recipients[0].user_id);
+   }catch(error){console.error('Withdrawal email dispatch deferred',{code:error.code});}
    return res.status(200).json({revision:result[0].revision,payoutInitiated:false});
   }catch(error){
    if(error.code==='40001')throw new HttpError(409,'This request changed or is no longer held. Reload before reviewing.');

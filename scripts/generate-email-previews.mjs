@@ -8,4 +8,4 @@ for(const type of EMAIL_TEMPLATE_TYPES){
  fs.writeFileSync(new URL(`${type}.html`,directory),html.replace(/href="https:\/\/invemon\.example\/#(?:verify|reset)\?token=[a-f0-9]+"/g,'href="/#emails"'));
  fs.writeFileSync(new URL(`${type}.txt`,directory),output.text);
 }
-console.log('Generated eight fictional email specimens. No emails sent.');
+console.log(`Generated ${EMAIL_TEMPLATE_TYPES.length} fictional email specimens. No emails sent.`);
